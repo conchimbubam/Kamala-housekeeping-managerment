@@ -1,0 +1,990 @@
+{
+  "last_updated": "2025-11-01T21:48:02.110662",
+  "updated_by": "Nguyễn Tấn Duy (HK)",
+  "source": "manual_update",
+  "total_rooms": 61,
+  "data": [
+    {
+      "roomNo": "401",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "402",
+      "roomStatus": "do/arr",
+      "currentGuest": {
+        "name": "Mằn Quay Phí (FM)",
+        "checkIn": "29-10-25",
+        "checkOut": "31-10-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "KYI KYI LINN",
+        "checkIn": "31-10-25",
+        "checkOut": "02-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "403",
+      "roomStatus": "do/arr",
+      "currentGuest": {
+        "name": "Celina Karlsson (FM)",
+        "checkIn": "24-10-25",
+        "checkOut": "31-10-25",
+        "pax": 1
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "404",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "405",
+      "roomStatus": "ip",
+      "currentGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "",
+        "checkOut": "",
+        "pax": 0
+      },
+      "notes": ""
+    },
+    {
+      "roomNo": "406",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "407",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "501",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "",
+        "checkOut": "",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "notes": ""
+    },
+    {
+      "roomNo": "502",
+      "roomStatus": "oc",
+      "currentGuest": {
+        "name": "Paul Lindsay Sloman Sloman (FM)",
+        "checkIn": "30-10-25",
+        "checkOut": "04-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "",
+        "checkOut": "",
+        "pax": 0
+      },
+      "notes": ""
+    },
+    {
+      "roomNo": "503",
+      "roomStatus": "lock",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "504",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "505",
+      "roomStatus": "do/arr",
+      "currentGuest": {
+        "name": "FANRONG ZENG (FM)",
+        "checkIn": "30-10-25",
+        "checkOut": "31-10-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "506",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "507",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "601",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "602",
+      "roomStatus": "oc",
+      "currentGuest": {
+        "name": "DOHA KIM KIM (FM)",
+        "checkIn": "30-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "",
+        "checkOut": "",
+        "pax": 0
+      },
+      "notes": ""
+    },
+    {
+      "roomNo": "603",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "604",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "",
+        "checkOut": "",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "notes": ""
+    },
+    {
+      "roomNo": "605",
+      "roomStatus": "dnd",
+      "currentGuest": {
+        "name": "GUOJIAN GOU (FM)",
+        "checkIn": "29-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "",
+        "checkOut": "",
+        "pax": 0
+      },
+      "notes": ""
+    },
+    {
+      "roomNo": "606",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "607",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "701",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "702",
+      "roomStatus": "do/arr",
+      "currentGuest": {
+        "name": "YOSHIHISA SAKAKIBARA (FM)",
+        "checkIn": "21-10-25",
+        "checkOut": "31-10-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "RONGRUI LIN",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "703",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "704",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "705",
+      "roomStatus": "do/arr",
+      "currentGuest": {
+        "name": "Gaeseong Lee",
+        "checkIn": "29-10-25",
+        "checkOut": "31-10-25",
+        "pax": 1
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "706",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "707",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "801",
+      "roomStatus": "do/arr",
+      "currentGuest": {
+        "name": "ZHENGDING ZHANG (FM)",
+        "checkIn": "28-10-25",
+        "checkOut": "31-10-25",
+        "pax": 3
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "802",
+      "roomStatus": "vd/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "803",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "804",
+      "roomStatus": "do/arr",
+      "currentGuest": {
+        "name": "CHANGFENG LIU (FM)",
+        "checkIn": "30-10-25",
+        "checkOut": "31-10-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "805",
+      "roomStatus": "do/arr",
+      "currentGuest": {
+        "name": "WENFENG MING MING (FM)",
+        "checkIn": "30-10-25",
+        "checkOut": "31-10-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "806",
+      "roomStatus": "do/arr",
+      "currentGuest": {
+        "name": "JINYANGYANG HUSHIYU (FM)",
+        "checkIn": "30-10-25",
+        "checkOut": "31-10-25",
+        "pax": 3
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "807",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "901",
+      "roomStatus": "od",
+      "currentGuest": {
+        "name": "YU JIANHUA (FM)",
+        "checkIn": "22-10-25",
+        "checkOut": "21-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "902",
+      "roomStatus": "od",
+      "currentGuest": {
+        "name": "Dave Veenhuizen (FM)",
+        "checkIn": "30-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "903",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "904",
+      "roomStatus": "do/arr",
+      "currentGuest": {
+        "name": "Amgad Morcos Morcos (FM)",
+        "checkIn": "29-10-25",
+        "checkOut": "31-10-25",
+        "pax": 1
+      },
+      "newGuest": {
+        "name": "Amgad Morcos",
+        "checkIn": "31-10-25",
+        "checkOut": "13-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "905",
+      "roomStatus": "od",
+      "currentGuest": {
+        "name": "WU AIHONG (FM)",
+        "checkIn": "28-10-25",
+        "checkOut": "22-11-25",
+        "pax": 1
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "906",
+      "roomStatus": "od",
+      "currentGuest": {
+        "name": "Zhang Ping (FM)",
+        "checkIn": "16-10-25",
+        "checkOut": "16-11-25",
+        "pax": 1
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "907",
+      "roomStatus": "od",
+      "currentGuest": {
+        "name": "黄文斌 (FM)",
+        "checkIn": "30-10-25",
+        "checkOut": "15-11-25",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "1001",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "1002",
+      "roomStatus": "od",
+      "currentGuest": {
+        "name": "Elena Terkulova Terkulova (FM)",
+        "checkIn": "26-10-25",
+        "checkOut": "02-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "1003",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "1004",
+      "roomStatus": "od",
+      "currentGuest": {
+        "name": "WANG WENLANG",
+        "checkIn": "29-10-25",
+        "checkOut": "18-11-25",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "1005",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "1006",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "1007",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "1101",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "CHANGFENG LIU",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "1102",
+      "roomStatus": "od",
+      "currentGuest": {
+        "name": "YAO FANGFANG (FM)",
+        "checkIn": "30-10-25",
+        "checkOut": "04-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "1103",
+      "roomStatus": "od",
+      "currentGuest": {
+        "name": "KSENIIA DUBKO (FM)",
+        "checkIn": "26-10-25",
+        "checkOut": "02-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "1104",
+      "roomStatus": "vd/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "1105",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "1106",
+      "roomStatus": "do/arr",
+      "currentGuest": {
+        "name": "LWIN MIN THANT",
+        "checkIn": "30-10-25",
+        "checkOut": "31-10-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Thuỳ Dung Phạm Phạm",
+        "checkIn": "31-10-25",
+        "checkOut": "05-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "1201",
+      "roomStatus": "od",
+      "currentGuest": {
+        "name": "Julijana (FM)",
+        "checkIn": "30-09-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "1202",
+      "roomStatus": "lock",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "1203",
+      "roomStatus": "od",
+      "currentGuest": {
+        "name": "Meng Xing Yu",
+        "checkIn": "29-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "1204",
+      "roomStatus": "do/arr",
+      "currentGuest": {
+        "name": "TIEN DOAN (FM)",
+        "checkIn": "29-10-25",
+        "checkOut": "31-10-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Royal Lotus 1168",
+        "checkIn": "31-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "1205",
+      "roomStatus": "od",
+      "currentGuest": {
+        "name": "Meng Xing Yu (FM)",
+        "checkIn": "29-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "1206",
+      "roomStatus": "od",
+      "currentGuest": {
+        "name": "ZHANG JUAN (FM)",
+        "checkIn": "27-10-25",
+        "checkOut": "16-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    }
+  ]
+}

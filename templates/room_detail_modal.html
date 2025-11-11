@@ -1,0 +1,218 @@
+<!-- Room Detail Modal - State Transition System -->
+<div class="modal fade" id="roomModal" tabindex="-1" aria-labelledby="roomModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <!-- Modal Header -->
+            <div class="modal-header bg-primary text-white">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-edit me-3 fs-4"></i>
+                    <div>
+                        <h4 class="modal-title mb-0" id="roomModalLabel">
+                            <span class="fs-3 fw-bold">Phòng </span>
+                            <span id="modal-room-no" class="fs-1 fw-bolder"></span>
+                        </h4>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="modal-body p-4">
+                <form id="room-edit-form">
+                    <!-- Current Status & Transitions - Now on top -->
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-header bg-gradient-primary text-black py-3">
+                            <h6 class="mb-0">
+                                <i class="fas fa-exchange-alt me-2"></i>Chuyển đổi trạng thái
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <!-- Current Status Display -->
+                            <div class="current-status-container text-center mb-4 p-3 rounded bg-light">
+                                <small class="text-muted d-block">Trạng thái hiện tại</small>
+                                <div id="current-status-display" class="status-display-main mt-2">
+                                    <span class="badge status-badge fs-5" id="current-status-badge">--</span>
+                                    <span id="current-arr-badge" class="badge bg-success ms-1 fs-6" style="display: none;">
+                                        <i class="fas fa-user-clock me-1"></i>ARR
+                                    </span>
+                                </div>
+                                <div class="status-description mt-2">
+                                    <small id="status-desc-text" class="text-muted">Chọn phòng để xem trạng thái</small>
+                                </div>
+                            </div>
+
+                            <!-- Available Transitions -->
+                            <div class="transitions-container">
+                                <h6 class="fw-semibold mb-3 text-center">
+                                    <i class="fas fa-arrow-right me-2"></i>Có thể chuyển thành
+                                </h6>
+                                <div id="available-transitions" class="row g-2">
+                                    <!-- Transition buttons will be dynamically generated here -->
+                                </div>
+                            </div>
+
+                            <!-- ARR Toggle -->
+                            <div class="arr-toggle-section mt-4 p-3 border rounded" id="arr-toggle-section">
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="arr-toggle" style="transform: scale(1.2);">
+                                    <label class="form-check-label fw-semibold" for="arr-toggle">
+                                        <i class="fas fa-calendar-check me-2 text-success"></i>
+                                        Có khách sắp đến (ARR)
+                                    </label>
+                                </div>
+                                <small class="text-muted d-block">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    <span id="arr-status-text">Chỉ áp dụng cho VD, VC, DO</span>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Guest Information Sections - Now stacked vertically -->
+                    <div class="row g-4">
+                        <!-- Current Guest Section -->
+                        <div class="col-12">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-header bg-gradient-info text-black py-3">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-user-clock me-2"></i>Khách hiện tại
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold">Tên khách</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                                <input type="text" class="form-control" id="edit-current-name" 
+                                                       name="currentGuest.name" placeholder="Nhập tên khách hàng">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-semibold">Check-in</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="fas fa-calendar-plus"></i></span>
+                                                <input type="text" class="form-control" id="edit-current-checkin" 
+                                                       name="currentGuest.checkIn" placeholder="DD-MM-YY">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-semibold">Check-out</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="fas fa-calendar-minus"></i></span>
+                                                <input type="text" class="form-control" id="edit-current-checkout" 
+                                                       name="currentGuest.checkOut" placeholder="DD-MM-YY">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-12">
+                                            <label class="form-label fw-semibold">Số lượng khách</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="fas fa-users"></i></span>
+                                                <input type="number" class="form-control" id="edit-current-pax" 
+                                                       name="currentGuest.pax" min="0" max="10" placeholder="0">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- New Guest Section - Conditionally Visible -->
+                        <div class="col-12 hidden" id="new-guest-section">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-header bg-gradient-success text-black py-3">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-user-plus me-2"></i>Khách sắp đến
+                                        <span class="badge bg-warning text-dark ms-2">ARR</span>
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold">Tên khách</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                                <input type="text" class="form-control" id="edit-new-name" 
+                                                       name="newGuest.name" placeholder="Nhập tên khách hàng">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-semibold">Check-in</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="fas fa-calendar-plus"></i></span>
+                                                <input type="text" class="form-control" id="edit-new-checkin" 
+                                                       name="newGuest.checkIn" placeholder="DD-MM-YY">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-semibold">Check-out</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="fas fa-calendar-minus"></i></span>
+                                                <input type="text" class="form-control" id="edit-new-checkout" 
+                                                       name="newGuest.checkOut" placeholder="DD-MM-YY">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-12">
+                                            <label class="form-label fw-semibold">Số lượng khách</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="fas fa-users"></i></span>
+                                                <input type="number" class="form-control" id="edit-new-pax" 
+                                                       name="newGuest.pax" min="0" max="10" placeholder="0">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="alert alert-info mt-3">
+                                        <small>
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Thông tin này chỉ hiển thị khi phòng có khách sắp đến (ARR)
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notes Section -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-header bg-gradient-warning text-dark py-3">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-sticky-note me-2"></i>Ghi chú nội bộ
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <textarea class="form-control" id="room-notes" rows="3" 
+                                              placeholder="Thêm ghi chú về phòng..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer bg-light">
+                <div class="w-100 d-flex justify-content-between align-items-center">
+                    <div class="text-muted small">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Cập nhật lần cuối: <span id="last-update-time">--</span>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-outline-secondary me-2" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>Đóng
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="saveRoomChanges()">
+                            <i class="fas fa-save me-1"></i>Lưu thay đổi
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

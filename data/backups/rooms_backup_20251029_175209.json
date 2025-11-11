@@ -1,0 +1,991 @@
+{
+  "last_updated": "2025-10-29T17:41:16.771971",
+  "updated_by": "Duy (FO)",
+  "source": "manual_update",
+  "total_rooms": 61,
+  "data": [
+    {
+      "roomNo": "401",
+      "roomStatus": "vd",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "notes": ""
+    },
+    {
+      "roomNo": "402",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "29-10-25",
+        "checkOut": "31-10-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "Mằn Quay Phí",
+        "checkIn": "29-10-25",
+        "checkOut": "31-10-25",
+        "pax": 2
+      },
+      "notes": "phòng này khách khó"
+    },
+    {
+      "roomNo": "403",
+      "roomStatus": "oc",
+      "currentGuest": {
+        "name": "Celina Karlsson (FM)",
+        "checkIn": "24-10-25",
+        "checkOut": "31-10-25",
+        "pax": 1
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "notes": ""
+    },
+    {
+      "roomNo": "404",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "VLADISLAV SHCHERBAKOV SHCHERBAKOV (FM)",
+        "checkIn": "26-10-25",
+        "checkOut": "29-10-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "test",
+        "checkIn": "29-10-25",
+        "checkOut": "30-10-25",
+        "pax": 2
+      },
+      "notes": "Phòng này khách khó"
+    },
+    {
+      "roomNo": "405",
+      "roomStatus": "oc",
+      "currentGuest": {
+        "name": "WANG WENLANG",
+        "checkIn": "23-10-25",
+        "checkOut": "04-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "notes": ""
+    },
+    {
+      "roomNo": "406",
+      "roomStatus": "vc",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "407",
+      "roomStatus": "vc",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "501",
+      "roomStatus": "od",
+      "currentGuest": {
+        "name": "VĂN NĂM - Tuấn Dũng (FM)",
+        "checkIn": "27-10-25",
+        "checkOut": "30-10-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "502",
+      "roomStatus": "ip",
+      "currentGuest": {
+        "name": "Ashish Bangar (FM)",
+        "checkIn": "28-10-25",
+        "checkOut": "30-10-25",
+        "pax": 1
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "503",
+      "roomStatus": "lock",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "504",
+      "roomStatus": "vc",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "notes": ""
+    },
+    {
+      "roomNo": "505",
+      "roomStatus": "ip",
+      "currentGuest": {
+        "name": "Ashish Bangar",
+        "checkIn": "28-10-25",
+        "checkOut": "30-10-25",
+        "pax": 1
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "506",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "29-10-25",
+        "checkOut": "30-10-25",
+        "pax": 4
+      },
+      "newGuest": {
+        "name": "KANNIKA SATTHAPONG",
+        "checkIn": "29-10-25",
+        "checkOut": "30-10-25",
+        "pax": 4
+      }
+    },
+    {
+      "roomNo": "507",
+      "roomStatus": "vc",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "601",
+      "roomStatus": "vc",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "602",
+      "roomStatus": "vd",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "603",
+      "roomStatus": "vc",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "604",
+      "roomStatus": "do",
+      "currentGuest": {
+        "name": "XINGDONG QIU (FM)",
+        "checkIn": "28-10-25",
+        "checkOut": "29-10-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "605",
+      "roomStatus": "do/arr",
+      "currentGuest": {
+        "name": "GUOJIAN GOU (FM)",
+        "checkIn": "26-10-25",
+        "checkOut": "29-10-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "GUOJIAN GOU",
+        "checkIn": "29-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "606",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "29-10-25",
+        "checkOut": "30-10-25",
+        "pax": 4
+      },
+      "newGuest": {
+        "name": "KANNIKA SATTHAPONG",
+        "checkIn": "29-10-25",
+        "checkOut": "30-10-25",
+        "pax": 4
+      }
+    },
+    {
+      "roomNo": "607",
+      "roomStatus": "vc",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "701",
+      "roomStatus": "vc",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "702",
+      "roomStatus": "od",
+      "currentGuest": {
+        "name": "YOSHIHISA SAKAKIBARA (FM)",
+        "checkIn": "21-10-25",
+        "checkOut": "31-10-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "703",
+      "roomStatus": "vc",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "704",
+      "roomStatus": "vd",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "705",
+      "roomStatus": "do",
+      "currentGuest": {
+        "name": "gaeseong lee (FM)",
+        "checkIn": "28-10-25",
+        "checkOut": "29-10-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "706",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "29-10-25",
+        "checkOut": "30-10-25",
+        "pax": 4
+      },
+      "newGuest": {
+        "name": "KANNIKA SATTHAPONG",
+        "checkIn": "29-10-25",
+        "checkOut": "30-10-25",
+        "pax": 4
+      }
+    },
+    {
+      "roomNo": "707",
+      "roomStatus": "vc",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "801",
+      "roomStatus": "ip",
+      "currentGuest": {
+        "name": "ZHENGDING ZHANG (FM)",
+        "checkIn": "28-10-25",
+        "checkOut": "31-10-25",
+        "pax": 3
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "802",
+      "roomStatus": "do",
+      "currentGuest": {
+        "name": "RUI MA (FM)",
+        "checkIn": "28-10-25",
+        "checkOut": "29-10-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "803",
+      "roomStatus": "vc",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "804",
+      "roomStatus": "vc",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "notes": ""
+    },
+    {
+      "roomNo": "805",
+      "roomStatus": "do/arr",
+      "currentGuest": {
+        "name": "WENFENG MING (FM)",
+        "checkIn": "28-10-25",
+        "checkOut": "29-10-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "TOSAK KEDRAK",
+        "checkIn": "29-10-25",
+        "checkOut": "30-10-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "806",
+      "roomStatus": "od",
+      "currentGuest": {
+        "name": "黄文斌 (FM)",
+        "checkIn": "26-10-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "807",
+      "roomStatus": "vc",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "901",
+      "roomStatus": "od",
+      "currentGuest": {
+        "name": "YU JIANHUA (FM)",
+        "checkIn": "22-10-25",
+        "checkOut": "21-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "902",
+      "roomStatus": "do",
+      "currentGuest": {
+        "name": "Irina Kniazeva (FM)",
+        "checkIn": "26-10-25",
+        "checkOut": "29-10-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "903",
+      "roomStatus": "vc",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "904",
+      "roomStatus": "vd/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "29-10-25",
+        "checkOut": "31-10-25",
+        "pax": 1
+      },
+      "newGuest": {
+        "name": "Amgad Morcos Morcos",
+        "checkIn": "29-10-25",
+        "checkOut": "31-10-25",
+        "pax": 1
+      }
+    },
+    {
+      "roomNo": "905",
+      "roomStatus": "ip",
+      "currentGuest": {
+        "name": "WU AIHONG (FM)",
+        "checkIn": "28-10-25",
+        "checkOut": "22-11-25",
+        "pax": 1
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "906",
+      "roomStatus": "od",
+      "currentGuest": {
+        "name": "Zhang Ping (FM)",
+        "checkIn": "16-10-25",
+        "checkOut": "16-11-25",
+        "pax": 1
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "907",
+      "roomStatus": "do",
+      "currentGuest": {
+        "name": "MENG XINGYU (FM)",
+        "checkIn": "28-10-25",
+        "checkOut": "29-10-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "1001",
+      "roomStatus": "vc",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "1002",
+      "roomStatus": "od",
+      "currentGuest": {
+        "name": "Elena Terkulova Terkulova (FM)",
+        "checkIn": "26-10-25",
+        "checkOut": "02-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "1003",
+      "roomStatus": "vc",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "1004",
+      "roomStatus": "vc",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "1005",
+      "roomStatus": "do",
+      "currentGuest": {
+        "name": "TIEN DOAN DOAN (FM)",
+        "checkIn": "27-10-25",
+        "checkOut": "29-10-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "1006",
+      "roomStatus": "vc",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "1007",
+      "roomStatus": "vc",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "1101",
+      "roomStatus": "vc",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "1102",
+      "roomStatus": "vc",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "1103",
+      "roomStatus": "od",
+      "currentGuest": {
+        "name": "KSENIIA DUBKO (FM)",
+        "checkIn": "26-10-25",
+        "checkOut": "02-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "1104",
+      "roomStatus": "od",
+      "currentGuest": {
+        "name": "Li Huimei (FM)",
+        "checkIn": "23-10-25",
+        "checkOut": "30-10-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "1105",
+      "roomStatus": "vd",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "1106",
+      "roomStatus": "vd",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "1201",
+      "roomStatus": "od",
+      "currentGuest": {
+        "name": "Julijana (FM)",
+        "checkIn": "30-09-25",
+        "checkOut": "01-11-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "1202",
+      "roomStatus": "lock",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "1203",
+      "roomStatus": "vc",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "1204",
+      "roomStatus": "vc/arr",
+      "currentGuest": {
+        "name": "",
+        "checkIn": "29-10-25",
+        "checkOut": "31-10-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "TIEN DOAN",
+        "checkIn": "29-10-25",
+        "checkOut": "31-10-25",
+        "pax": 2
+      }
+    },
+    {
+      "roomNo": "1205",
+      "roomStatus": "do",
+      "currentGuest": {
+        "name": "Jesintharen Maniam (FM)",
+        "checkIn": "27-10-25",
+        "checkOut": "29-10-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    },
+    {
+      "roomNo": "1206",
+      "roomStatus": "ip",
+      "currentGuest": {
+        "name": "ZHANG JUAN (FM)",
+        "checkIn": "27-10-25",
+        "checkOut": "31-10-25",
+        "pax": 2
+      },
+      "newGuest": {
+        "name": "",
+        "checkIn": "00-01-00",
+        "checkOut": "00-01-00",
+        "pax": 0
+      }
+    }
+  ]
+}

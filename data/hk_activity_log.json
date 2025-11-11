@@ -1,0 +1,139 @@
+[
+  {
+    "timestamp": "2025-11-01T15:36:04.093174",
+    "user_name": "Nguyễn Tấn Duy",
+    "room_no": "1002",
+    "action_type": "dọn phòng ở",
+    "action_detail": "OD → OC",
+    "old_status": "od",
+    "new_status": "oc"
+  },
+  {
+    "timestamp": "2025-11-01T20:55:45.592997",
+    "user_name": "Duy",
+    "room_no": "501",
+    "action_type": "dọn phòng trống",
+    "action_detail": "VD/ARR → VC/ARR",
+    "old_status": "vd/arr",
+    "new_status": "vc/arr"
+  },
+  {
+    "timestamp": "2025-11-01T20:55:51.070089",
+    "user_name": "Duy",
+    "room_no": "502",
+    "action_type": "dọn phòng ở",
+    "action_detail": "OD → OC",
+    "old_status": "od",
+    "new_status": "oc"
+  },
+  {
+    "timestamp": "2025-11-01T20:55:57.267127",
+    "user_name": "Duy",
+    "room_no": "602",
+    "action_type": "dọn phòng ở",
+    "action_detail": "OD → OC",
+    "old_status": "od",
+    "new_status": "oc"
+  },
+  {
+    "timestamp": "2025-11-01T20:56:48.172211",
+    "user_name": "Duy",
+    "room_no": "605",
+    "action_type": "dọn phòng ở",
+    "action_detail": "OD → DND",
+    "old_status": "od",
+    "new_status": "dnd"
+  },
+  {
+    "timestamp": "2025-11-01T21:20:04.985917",
+    "user_name": "Duy",
+    "room_no": "604",
+    "action_type": "dọn phòng trống",
+    "action_detail": "VD/ARR → VC/ARR",
+    "old_status": "vd/arr",
+    "new_status": "vc/arr"
+  },
+  {
+    "timestamp": "2025-11-02T15:35:07.400581",
+    "user_name": "Duy",
+    "room_no": "404",
+    "action_type": "dọn phòng ở",
+    "action_detail": "OD → OC",
+    "old_status": "od",
+    "new_status": "oc"
+  },
+  {
+    "timestamp": "2025-11-02T15:35:10.685921",
+    "user_name": "Duy",
+    "room_no": "405",
+    "action_type": "dọn phòng ở",
+    "action_detail": "OD → OC",
+    "old_status": "od",
+    "new_status": "oc"
+  },
+  {
+    "timestamp": "2025-11-02T15:35:14.329493",
+    "user_name": "Duy",
+    "room_no": "502",
+    "action_type": "dọn phòng ở",
+    "action_detail": "OD → OC",
+    "old_status": "od",
+    "new_status": "oc"
+  },
+  {
+    "timestamp": "2025-11-02T16:30:01.853093",
+    "user_name": "Duy",
+    "room_no": "605",
+    "action_type": "dọn phòng ở",
+    "action_detail": "OD → NN",
+    "old_status": "od",
+    "new_status": "nn"
+  },
+  {
+    "timestamp": "2025-11-06T20:21:48.300552",
+    "user_name": "Nguyễn Tấn Duy",
+    "room_no": "705",
+    "action_type": "dọn phòng ở",
+    "action_detail": "OD → OC",
+    "old_status": "od",
+    "new_status": "oc"
+  },
+  {
+    "timestamp": "2025-11-06T20:21:57.266302",
+    "user_name": "Nguyễn Tấn Duy",
+    "room_no": "704",
+    "action_type": "dọn phòng ở",
+    "action_detail": "OD → OC",
+    "old_status": "od",
+    "new_status": "oc"
+  },
+  {
+    "timestamp": "2025-11-07T07:40:19.698659",
+    "user_name": "duy",
+    "room_no": "501",
+    "action_type": "dọn phòng ở",
+    "action_detail": "OD → OC",
+    "old_status": "od",
+    "new_status": "oc"
+  },
+  {
+    "timestamp": "2025-11-10T16:31:17.371997",
+    "user_name": "Phạm Thu Hà",
+    "room_no": "501",
+    "activity_type": "room_status",
+    "action_type": "dọn phòng ở",
+    "action_detail": "OD → OC",
+    "old_status": "od",
+    "new_status": "oc"
+  },
+  {
+    "timestamp": "2025-11-10T16:42:51.686432",
+    "user_name": "Phạm Thu Hà",
+    "room_no": "605",
+    "activity_type": "room_status",
+    "action_type": "dọn phòng ở",
+    "action_detail": "OD → OC",
+    "old_status": "od",
+    "new_status": "oc"
+  }
+]
