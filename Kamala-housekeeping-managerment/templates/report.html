@@ -1,0 +1,148 @@
+<!-- HK Report Modal -->
+<div class="modal fade" id="hkReportModal" tabindex="-1" aria-labelledby="hkReportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="hkReportModalLabel">
+                    <i class="fas fa-chart-bar me-2"></i>Báo cáo nhả phòng HK
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Thông tin báo cáo -->
+                <div class="alert alert-info">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Báo cáo thống kê quá trình nhả phòng</strong>
+                            <br>
+                            <small>Thời gian: Từ 8h15 đến thời điểm hiện tại</small>
+                        </div>
+                        <div class="text-end">
+                            <small class="text-muted" id="report-time"></small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Thống kê tổng quan -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-header bg-primary text-white py-3">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-users me-2"></i>Thống kê theo nhân viên
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="staff-stats" class="staff-stats-container">
+                                    <!-- Thống kê sẽ được điền ở đây -->
+                                    <div class="text-center text-muted py-4">
+                                        <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+                                        <br>
+                                        Đang tải dữ liệu...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-header bg-success text-white py-3">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-chart-pie me-2"></i>Tổng quan hoạt động
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="summary-stats">
+                                    <!-- Tổng quan sẽ được điền ở đây -->
+                                    <div class="text-center text-muted py-4">
+                                        <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+                                        <br>
+                                        Đang tải dữ liệu...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bảng chi tiết -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-dark text-white py-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">
+                                <i class="fas fa-table me-2"></i>Chi tiết thao tác
+                            </h6>
+                            <span class="badge bg-light text-dark" id="total-records">0 bản ghi</span>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-bordered table-hover mb-0">
+                                <thead class="table-secondary">
+                                    <tr>
+                                        <th width="50">STT</th>
+                                        <th width="150">Nhân viên</th>
+                                        <th width="100">Phòng</th>
+                                        <th width="120">Loại thao tác</th>
+                                        <th>Tình trạng</th>
+                                        <th width="180">Thời gian</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="hk-report-body">
+                                    <!-- Dữ liệu báo cáo sẽ được điền ở đây -->
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted py-4">
+                                            <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+                                            <br>
+                                            Đang tải dữ liệu...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chú thích -->
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="alert alert-warning">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-lightbulb me-2"></i>Chú thích:
+                            </h6>
+                            <div class="row small">
+                                <div class="col-md-6">
+                                    <strong>Dọn phòng trống:</strong>
+                                    <ul class="mb-0">
+                                        <li>VD → VC: Phòng trống sạch → Phòng trống bẩn</li>
+                                        <li>VD/ARR → VC/ARR: Phòng trống sạch có khách sắp đến → Phòng trống bẩn có khách sắp đến</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Dọn phòng ở:</strong>
+                                    <ul class="mb-0">
+                                        <li>OD → OC: Phòng có khách → Phòng đã dọn</li>
+                                        <li>OD → DND: Phòng có khách → Không làm phiền</li>
+                                        <li>OD → NN: Phòng có khách → Không cần dọn</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Đóng
+                </button>
+                <button type="button" class="btn btn-success" onclick="exportHKReport()">
+                    <i class="fas fa-download me-2"></i>Xuất báo cáo
+                </button>
+                <button type="button" class="btn btn-primary" onclick="showHKReportModal()">
+                    <i class="fas fa-redo me-2"></i>Làm mới
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

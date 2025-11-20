@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập - Quản Lý Khách Sạn</title>
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --neon-blue: #00f3ff;
+            --neon-purple: #b300ff;
+            --neon-pink: #ff00c8;
+            --neon-green: #00ff9d;
+            --dark-bg: #0a0a16;
+            --card-bg: rgba(10, 10, 22, 0.8);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+        
+        body {
+            background: linear-gradient(135deg, #05051a 0%, #0a0a2e 25%, #0f0f3a 50%, #0a0a2e 75%, #05051a 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 20s ease infinite;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            position: relative;
+            overflow: hidden;
+            color: white;
+        }
+        
+        @keyframes gradientShift {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+        
+        /* Hiệu ứng lưới công nghệ chuyển màu */
+        .grid-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.3;
+            background-image: 
+                linear-gradient(rgba(0, 243, 255, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridColorShift 10s infinite alternate;
+        }
+        
+        @keyframes gridColorShift {
+            0% {
+                background-image: 
+                    linear-gradient(rgba(0, 243, 255, 0.1) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(0, 243, 255, 0.1) 1px, transparent 1px);
+            }
+            25% {
+                background-image: 
+                    linear-gradient(rgba(179, 0, 255, 0.1) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(179, 0, 255, 0.1) 1px, transparent 1px);
+            }
+            50% {
+                background-image: 
+                    linear-gradient(rgba(255, 0, 200, 0.1) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255, 0, 200, 0.1) 1px, transparent 1px);
+            }
+            75% {
+                background-image: 
+                    linear-gradient(rgba(0, 255, 157, 0.1) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(0, 255, 157, 0.1) 1px, transparent 1px);
+            }
+            100% {
+                background-image: 
+                    linear-gradient(rgba(0, 243, 255, 0.1) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(0, 243, 255, 0.1) 1px, transparent 1px);
+            }
+        }
+        
+        /* Hiệu ứng xuất hiện công nghệ */
+        .login-container {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 15px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 
+                0 0 20px rgba(0, 243, 255, 0.2),
+                inset 0 0 20px rgba(0, 243, 255, 0.1);
+            overflow: hidden;
+            width: 100%;
+            max-width: 420px;
+            position: relative;
+            z-index: 10;
+            transform: scale(0.9);
+            opacity: 0;
+            animation: techAppear 1s forwards 0.5s;
+        }
+        
+        @keyframes techAppear {
+            0% {
+                transform: scale(0.9) translateY(20px);
+                opacity: 0;
+                box-shadow: 0 0 0 rgba(0, 243, 255, 0);
+            }
+            50% {
+                transform: scale(1.02) translateY(-5px);
+                box-shadow: 0 0 30px var(--neon-blue);
+            }
+            100% {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+                box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+            }
+        }
+        
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple), var(--neon-pink), var(--neon-green));
+            border-radius: 17px;
+            z-index: -1;
+            opacity: 0.7;
+        }
+        
+        .login-header {
+            background: rgba(0, 0, 0, 0.4);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(0, 243, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .login-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 243, 255, 0.1), transparent);
+            transform: translateX(-100%);
+            animation: headerScan 6s infinite;
+        }
+        
+        @keyframes headerScan {
+            0% {
+                transform: translateX(-100%);
+            }
+            100% {
+                transform: translateX(100%);
+            }
+        }
+        
+        .login-header h2 {
+            margin: 0;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px var(--neon-blue);
+        }
+        
+        .login-header p {
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+        
+        .login-body {
+            padding: 30px;
+        }
+        
+        .form-control {
+            border-radius: 8px;
+            padding: 12px 15px;
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            border-color: var(--neon-blue);
+            background: rgba(0, 0, 0, 0.7);
+            box-shadow: 0 0 10px var(--neon-blue);
+            color: white;
+        }
+        
+        .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .btn-login {
+            background: linear-gradient(135deg, var(--neon-blue) 0%, var(--neon-purple) 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-login::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: 0.5s;
+        }
+        
+        .btn-login:hover::before {
+            left: 100%;
+        }
+        
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px var(--neon-blue);
+        }
+        
+        .department-badges {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .department-badge {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+        }
+        
+        .department-badge.active {
+            border-color: var(--neon-blue);
+            background: rgba(0, 243, 255, 0.2);
+            color: var(--neon-blue);
+            box-shadow: 0 0 10px var(--neon-blue);
+        }
+        
+        .department-badge:hover {
+            border-color: var(--neon-blue);
+            background: rgba(0, 243, 255, 0.1);
+        }
+        
+        .form-label {
+            color: white;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        .alert {
+            border-radius: 8px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .alert-danger {
+            color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+        }
+        
+        /* Hiệu ứng chữ nhấp nháy */
+        .blink {
+            animation: blink 2s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 50% {
+                opacity: 1;
+            }
+            51%, 100% {
+                opacity: 0.3;
+            }
+        }
+        
+        /* Hiệu ứng hạt điện tử */
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background-color: var(--neon-blue);
+            border-radius: 50%;
+            box-shadow: 0 0 5px var(--neon-blue);
+            animation: particleFloat 15s infinite linear;
+        }
+        
+        @keyframes particleFloat {
+            0% {
+                transform: translateY(100vh) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) translateX(20px);
+                opacity: 0;
+            }
+        }
+        
+        /* Hiệu ứng lưới phụ - tạo chiều sâu */
+        .grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            opacity: 0.1;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+            animation: gridMove 20s linear infinite;
+        }
+        
+        @keyframes gridMove {
+            0% {
+                transform: translate(0, 0);
+            }
+            100% {
+                transform: translate(20px, 20px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Hiệu ứng lưới công nghệ chuyển màu -->
+    <div class="grid-background"></div>
+    
+    <!-- Hiệu ứng lưới phụ -->
+    <div class="grid-overlay"></div>
+    
+    <!-- Hiệu ứng hạt điện tử -->
+    <div class="particles" id="particles"></div>
+    
+    <div class="login-container">
+        <div class="login-header">
+            <h2><i class="fas fa-hotel me-2 blink"></i>KAMALA HOTEL & APARTMENT</h2>
+            <p>Housekeeping Management System</p>
+        </div>
+        
+        <div class="login-body">
+            <form method="POST" action="#">
+                <div class="mb-3">
+                    <label for="name" class="form-label">
+                        <i class="fas fa-user me-2"></i>Tên nhân viên
+                    </label>
+                    <input type="text" class="form-control" id="name" name="name" 
+                           placeholder="Nhập tên của bạn" required autofocus>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">
+                        <i class="fas fa-building me-2"></i>Bộ phận
+                    </label>
+                    <div class="department-badges">
+                        <div class="department-badge active" onclick="selectDepartment('HK')">
+                            HK
+                        </div>
+                        <div class="department-badge" onclick="selectDepartment('SUP')">
+                            SUP
+                        </div>
+                        <div class="department-badge" onclick="selectDepartment('FO')">
+                            FO
+                        </div>
+                    </div>
+                    <input type="hidden" id="department" name="department" value="HK" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="department_code" class="form-label">
+                        <i class="fas fa-key me-2"></i>Mã bộ phận
+                    </label>
+                    <input type="password" class="form-control" id="department_code" 
+                           name="department_code" placeholder="Nhập mã bộ phận" required>
+                </div>
+                
+                <button type="submit" class="btn btn-login w-100">
+                    <i class="fas fa-sign-in-alt me-2"></i>Đăng nhập
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Tạo hiệu ứng hạt điện tử
+        function createParticles() {
+            const container = document.getElementById('particles');
+            const particleCount = 30;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                
+                // Kích thước ngẫu nhiên
+                const size = Math.random() * 2 + 1;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                
+                // Vị trí ngẫu nhiên
+                const startX = Math.random() * window.innerWidth;
+                particle.style.left = `${startX}px`;
+                
+                // Thời gian di chuyển ngẫu nhiên
+                const duration = Math.random() * 10 + 10;
+                particle.style.animationDuration = `${duration}s`;
+                
+                // Độ trễ ngẫu nhiên
+                const delay = Math.random() * 15;
+                particle.style.animationDelay = `${delay}s`;
+                
+                // Màu sắc ngẫu nhiên
+                const colors = ['#00f3ff', '#b300ff', '#ff00c8', '#00ff9d'];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                particle.style.backgroundColor = color;
+                particle.style.boxShadow = `0 0 5px ${color}`;
+                
+                container.appendChild(particle);
+            }
+        }
+        
+        // Hàm chọn bộ phận
+        function selectDepartment(dept) {
+            // Remove active class from all badges
+            document.querySelectorAll('.department-badge').forEach(badge => {
+                badge.classList.remove('active');
+            });
+            
+            // Add active class to selected badge
+            event.target.classList.add('active');
+            
+            // Set hidden input value
+            document.getElementById('department').value = dept;
+        }
+        
+        // Khởi tạo hiệu ứng khi trang được tải
+        document.addEventListener('DOMContentLoaded', function() {
+            createParticles();
+            
+            // Thêm hiệu ứng nhấp chuột
+            document.querySelectorAll('.department-badge, .btn-login').forEach(element => {
+                element.addEventListener('click', function() {
+                    this.style.transform = 'scale(0.98)';
+                    setTimeout(() => {
+                        this.style.transform = '';
+                    }, 150);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

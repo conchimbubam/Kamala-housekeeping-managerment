@@ -1,0 +1,456 @@
+/* Enhanced Room Modal Styles with State Transitions - Pink/Orange Theme */
+.status-display-main {
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    background: linear-gradient(135deg, #fff8f8 0%, #ffe8e8 100%);
+    border-radius: 15px;
+    margin: 10px 0;
+    padding: 10px;
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.1);
+    border: 1px solid rgba(255, 182, 182, 0.3);
+}
+
+.status-badge {
+    padding: 0.75rem 1.5rem;
+    border-radius: 25px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    font-size: 0.9rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.status-badge::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%);
+    pointer-events: none;
+}
+
+/* Status Colors - Giữ nguyên màu trạng thái nhưng thêm gradient */
+.status-badge.status-vd { 
+    background: linear-gradient(135deg, #6c757d 0%, #8e9eab 100%); 
+    color: white; 
+}
+.status-badge.status-vc { 
+    background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%); 
+    color: black; 
+    border: 2px solid #dee2e6; 
+}
+.status-badge.status-do { 
+    background: linear-gradient(135deg, #ffc107 0%, #ffd54f 100%); 
+    color: #000; 
+}
+.status-badge.status-od { 
+    background: linear-gradient(135deg, #000000 0%, #424242 100%); 
+    color: white; 
+}
+.status-badge.status-oc { 
+    background: linear-gradient(135deg, #ffc107 0%, #ffd54f 100%); 
+    color: #000; 
+}
+.status-badge.status-dnd { 
+    background: linear-gradient(135deg, #ffc107 0%, #ffd54f 100%); 
+    color: #000; 
+}
+.status-badge.status-nn { 
+    background: linear-gradient(135deg, #ffc107 0%, #ffd54f 100%); 
+    color: #000; 
+}
+.status-badge.status-lock { 
+    background: linear-gradient(135deg, #dc3545 0%, #f44336 100%); 
+    color: white; 
+}
+.status-badge.status-ip { 
+    background: linear-gradient(135deg, #28a745 0%, #66bb6a 100%); 
+    color: white; 
+}
+
+/* Transition Buttons - Pink/Orange Theme */
+.transition-btn {
+    border: 2px solid;
+    border-radius: 12px;
+    padding: 0.75rem 0.5rem;
+    font-weight: 700;
+    transition: all 0.3s ease;
+    text-align: center;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    background: white;
+    box-shadow: 0 4px 6px rgba(255, 107, 107, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.transition-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 107, 107, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.transition-btn::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%);
+    pointer-events: none;
+}
+
+.transition-btn:hover::before {
+    left: 100%;
+}
+
+.transition-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 15px rgba(255, 107, 107, 0.3);
+}
+
+.transition-btn:active {
+    transform: translateY(-1px);
+}
+
+/* Transition button colors với Pink/Orange theme */
+.transition-btn[data-target="vd"] { 
+    border-color: #6c757d; 
+    color: #6c757d; 
+    background-color: #f8f9fa; 
+}
+.transition-btn[data-target="vd"]:hover { 
+    background-color: #6c757d; 
+    color: white; 
+}
+
+.transition-btn[data-target="vc"] { 
+    border-color: #ff6b6b; 
+    color: #ff5252; 
+    background-color: #fff8f8; 
+}
+.transition-btn[data-target="vc"]:hover { 
+    background-color: #ff6b6b; 
+    color: white; 
+}
+
+.transition-btn[data-target="do"] { 
+    border-color: #ffc107; 
+    color: #856404; 
+    background-color: #fffbf0; 
+}
+.transition-btn[data-target="do"]:hover { 
+    background-color: #ffc107; 
+    color: #000; 
+}
+
+.transition-btn[data-target="od"] { 
+    border-color: #ff6b6b; 
+    color: #ff5252; 
+    background-color: #fff8f8; 
+}
+.transition-btn[data-target="od"]:hover { 
+    background-color: #000; 
+    color: white; 
+}
+
+.transition-btn[data-target="oc"] { 
+    border-color: #ffc107; 
+    color: #856404; 
+    background-color: #fffbf0; 
+}
+.transition-btn[data-target="oc"]:hover { 
+    background-color: #ffc107; 
+    color: #000; 
+}
+
+.transition-btn[data-target="dnd"] { 
+    border-color: #ffc107; 
+    color: #856404; 
+    background-color: #fffbf0; 
+}
+.transition-btn[data-target="dnd"]:hover { 
+    background-color: #ffc107; 
+    color: #000; 
+}
+
+.transition-btn[data-target="nn"] { 
+    border-color: #ffc107; 
+    color: #856404; 
+    background-color: #fffbf0; 
+}
+.transition-btn[data-target="nn"]:hover { 
+    background-color: #ffc107; 
+    color: #000; 
+}
+
+.transition-btn[data-target="lock"] { 
+    border-color: #dc3545; 
+    color: #dc3545; 
+    background-color: #fef7f7; 
+}
+.transition-btn[data-target="lock"]:hover { 
+    background-color: #dc3545; 
+    color: white; 
+}
+
+.transition-btn[data-target="ip"] { 
+    border-color: #ff6b6b; 
+    color: #ff5252; 
+    background-color: #fff8f8; 
+}
+.transition-btn[data-target="ip"]:hover { 
+    background-color: #28a745; 
+    color: white; 
+}
+
+/* Current status container enhancements */
+.current-status-container {
+    transition: all 0.3s ease;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #ffffff 0%, #fff8f8 100%);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.1);
+}
+
+.current-status-container.with-arr {
+    background: linear-gradient(135deg, #ffe8e8 0%, #ffd4d4 100%) !important;
+    border-color: #ff6b6b !important;
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.2);
+}
+
+/* Status descriptions */
+.status-description {
+    min-height: 20px;
+    color: #ff5252;
+    font-weight: 500;
+}
+
+/* ARR toggle enhancements */
+.arr-toggle-section {
+    background: linear-gradient(135deg, #fff8f8 0%, #ffe8e8 100%);
+    transition: all 0.3s ease;
+    border-radius: 12px;
+    border: 2px solid #e9ecef;
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.1);
+}
+
+.arr-toggle-section.active {
+    background: linear-gradient(135deg, #ffe8e8 0%, #ffd4d4 100%);
+    border-color: #ff6b6b !important;
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.2);
+}
+
+.arr-toggle-section.disabled {
+    opacity: 0.6;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+/* Animation for status changes */
+@keyframes statusChange {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); box-shadow: 0 0 20px rgba(255, 107, 107, 0.4); }
+    100% { transform: scale(1); }
+}
+
+.status-change-animation {
+    animation: statusChange 0.5s ease;
+}
+
+/* Ẩn phần khách sắp đến khi không có ARR */
+#new-guest-section.hidden {
+    display: none !important;
+}
+
+/* Đảm bảo phần khách sắp đến hiển thị đúng khi có ARR */
+#new-guest-section:not(.hidden) {
+    display: block;
+    background: linear-gradient(135deg, #fff8f8 0%, #ffe8e8 100%);
+    border-radius: 12px;
+    padding: 15px;
+    margin-top: 10px;
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.1);
+    border: 1px solid rgba(255, 182, 182, 0.3);
+}
+
+/* Form switch customization với Pink/Orange theme */
+.form-switch .form-check-input:checked {
+    background-color: #ff6b6b;
+    border-color: #ff6b6b;
+}
+
+.form-switch .form-check-input:focus {
+    border-color: #ff6b6b;
+    box-shadow: 0 0 0 0.2rem rgba(255, 107, 107, 0.25);
+}
+
+.form-switch .form-check-label {
+    color: #ff5252;
+    font-weight: 500;
+}
+
+/* Header và tiêu đề với Pink/Orange theme */
+.modal-header {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ff8c42 100%);
+    color: white;
+    border-bottom: none;
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.modal-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+    pointer-events: none;
+}
+
+.modal-title {
+    font-weight: 700;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    position: relative;
+    z-index: 1;
+}
+
+/* Section headers - Màu hồng cam cho các tiêu đề */
+.section-header {
+    color: #ff5252;
+    font-weight: 700;
+    border-bottom: 2px solid #ffe8e8;
+    padding-bottom: 8px;
+    margin-bottom: 15px;
+    position: relative;
+    display: inline-block;
+}
+
+.section-header::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 50px;
+    height: 3px;
+    background: linear-gradient(90deg, #ff6b6b, #ff8c42);
+    border-radius: 2px;
+}
+
+/* Các heading cụ thể với màu hồng cam */
+#transition-heading,
+#current-guest-heading,
+#new-guest-heading {
+    color: #ff5252;
+    font-weight: 700;
+    position: relative;
+    padding-left: 15px;
+}
+
+#transition-heading::before,
+#current-guest-heading::before,
+#new-guest-heading::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 5px;
+    height: 20px;
+    background: linear-gradient(135deg, #ff6b6b, #ff8c42);
+    border-radius: 3px;
+}
+
+/* Nút đóng modal */
+.btn-close {
+    filter: invert(1);
+    opacity: 0.8;
+    transition: all 0.3s ease;
+}
+
+.btn-close:hover {
+    opacity: 1;
+    transform: rotate(90deg);
+}
+
+/* Modal body improvements */
+.modal-body {
+    background: linear-gradient(135deg, #fffafa 0%, #fff5f5 100%);
+}
+
+/* Button glow effect */
+.btn-glow {
+    box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 10px rgba(255, 107, 107, 0.5); }
+    50% { box-shadow: 0 0 20px rgba(255, 107, 107, 0.8); }
+    100% { box-shadow: 0 0 10px rgba(255, 107, 107, 0.5); }
+}
+
+/* Card improvements */
+.card {
+    border: 1px solid rgba(255, 182, 182, 0.3);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.1);
+    background: white;
+}
+
+/* Input focus effects */
+.form-control:focus {
+    border-color: #ff6b6b;
+    box-shadow: 0 0 0 0.2rem rgba(255, 107, 107, 0.25);
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+    .status-badge {
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+    }
+    
+    .transition-btn {
+        padding: 0.5rem 0.25rem;
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .status-display-main {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .current-status-container {
+        padding: 1rem !important;
+    }
+    
+    .transition-btn {
+        width: 100%;
+        margin-bottom: 8px;
+    }
+    
+    .section-header::after {
+        width: 30px;
+    }
+}

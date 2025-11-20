@@ -1,0 +1,54 @@
+services:
+  - type: web
+    name: Kamala-hotel-management-app
+    env: python
+    plan: free
+    region: singapore  # Gần Việt Nam để tốc độ tốt hơn
+    buildCommand: |
+      pip install -r requirements.txt
+      mkdir -p data/backups
+    startCommand: gunicorn app:app
+    envVars:
+      # Flask Configuration
+      - key: SECRET_KEY
+        generateValue: true  # Render sẽ tự generate secret key an toàn
+      - key: DEBUG
+        value: "False"  # Trên production nên tắt DEBUG
+      
+      # Google Sheets API Configuration
+      - key: API_KEY
+        value: "AIzaSyCY5tu6rUE7USAnr0ALlhBAKlx-wmLYv6A"
+      - key: SPREADSHEET_ID
+        value: "14-m1Wg2g2J75YYwZnqe_KV7nxLn1c_zVVT-uMxz-uJo"
+      - key: RANGE_NAME
+        value: "A2:J63"
+      
+      # Data Configuration
+      - key: DATA_DIR
+        value: "data"
+      - key: ROOMS_JSON
+        value: "data/rooms.json"
+      - key: BACKUP_DIR
+        value: "data/backups"
+      
+      # Python Configuration
+      - key: PYTHON_VERSION
+        value: "3.11.4"
+      - key: PYTHONUNBUFFERED
+        value: "True"
+
+  # (Tùy chọn) Thêm PostgreSQL database nếu cần
+  # - type: postgres
+  #   name: hotel-management-db
+  #   plan: free
+  #   databaseName: hotel_management
+  #   user: hotel_admin
+
+# (Tùy chọn) Cron jobs cho backup tự động
+jobs:
+  - type: cron
+    name: daily-data-backup
+    schedule: "0 2 * * *"  # 2h sáng hàng ngày (giờ UTC)
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python scripts/backup.py

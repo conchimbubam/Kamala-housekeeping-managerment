@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tasksheet Housekeeping - Bản in</title>
+    <style>
+        /* Reset và cài đặt cơ bản cho in ấn */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        body {
+            color: #000;
+            font-size: 9px;
+            line-height: 1;
+            padding: 3px;
+            background: #fff;
+        }
+        
+        /* Ẩn các phần tử không cần thiết khi in */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            
+            body {
+                padding: 0;
+                margin: 0;
+            }
+            
+            .page-break {
+                page-break-after: always;
+            }
+        }
+        
+        /* Header và thông tin chung */
+        .header {
+            margin-bottom: 5px;
+            padding-bottom: 3px;
+            border-bottom: 1px solid #000;
+        }
+        
+        .header h1 {
+            font-size: 14px;
+            margin-bottom: 3px;
+            text-align: center;
+        }
+        
+        .info-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 3px;
+            flex-wrap: wrap;
+        }
+        
+        .info-item {
+            margin-right: 8px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            margin-right: 2px;
+            font-size: 8px;
+        }
+        
+        .info-input {
+            border: none;
+            border-bottom: 1px solid #000;
+            width: 60px;
+            text-align: center;
+            font-size: 8px;
+            padding: 0;
+        }
+        
+        /* Bảng hiển thị phòng */
+        .rooms-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 5px;
+            table-layout: fixed;
+        }
+        
+        .rooms-table th {
+            background-color: #f2f2f2;
+            border: 1px solid #000;
+            padding: 3px 1px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 9px;
+        }
+        
+        .rooms-table td {
+            border: 1px solid #000;
+            padding: 1px;
+            vertical-align: middle;
+            font-size: 8px;
+        }
+        
+        .room-number, .room-status {
+            text-align: center;
+            font-weight: bold;
+            font-size: 15px !important; /* Tăng kích thước chữ và thêm !important */
+        }
+        
+        .guest-info {
+            padding: 0;
+        }
+        
+        .guest-row {
+            padding: 0;
+            min-height: 15px;
+        }
+        
+        .guest-row:first-child {
+            border-bottom: 1px dashed #ccc;
+        }
+        
+        .guest-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            line-height: 1;
+            padding: 0 1px;
+        }
+        
+        .guest-name {
+            font-weight: bold;
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-right: 2px;
+        }
+        
+        .guest-details {
+            display: flex;
+            white-space: nowrap;
+            align-items: center;
+        }
+        
+        .separator {
+            margin: 0 2px;
+            color: #666;
+        }
+        
+        .guest-pax {
+            white-space: nowrap;
+        }
+        
+        .empty-guest {
+            font-style: italic;
+            color: #666;
+            font-size: 7px;
+            text-align: center;
+            width: 100%;
+        }
+        
+        .notes {
+            font-size: 8px;
+            text-align: left;
+            padding: 0 2px;
+        }
+        
+        /* Nút in (chỉ hiển thị trên màn hình) */
+        .print-button {
+            position: fixed;
+            top: 5px;
+            right: 5px;
+            padding: 5px 8px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            z-index: 1000;
+            font-size: 10px;
+        }
+        
+        /* Tối ưu hóa cho in ấn */
+        @page {
+            size: A4 portrait;
+            margin: 0.2cm;
+        }
+        
+        /* Đảm bảo bảng không bị ngắt trang trong một hàng */
+        .rooms-table tr {
+            page-break-inside: avoid;
+            height: 24px;
+        }
+        
+        /* Điều chỉnh độ rộng cột sau khi bỏ cột STT */
+        .room-number {
+            width: 10% !important; /* Tăng độ rộng và thêm !important */
+        }
+        
+        .room-status {
+            width: 12% !important; /* Tăng độ rộng và thêm !important */
+        }
+        
+        .guest-info-cell {
+            width: 55%;
+        }
+        
+        .notes-cell {
+            width: 23%;
+        }
+    </style>
+</head>
+<body>
+    <!-- Nút in (chỉ hiển thị trên màn hình) -->
+    <button class="print-button no-print" onclick="window.print()">In Tasksheet</button>
+    
+    <!-- Header -->
+    <div class="header">
+        <h1>TASKSHEET HOUSEKEEPING</h1>
+        <div class="info-bar">
+            <div class="info-item">
+                <span class="info-label">Tên nhân viên:</span>
+                <input type="text" class="info-input">
+            </div>
+            <div class="info-item">
+                <span class="info-label">Ngày:</span>
+                <input type="text" class="info-input">
+            </div>
+            <div class="info-item">
+                <span class="info-label">Ca làm việc:</span>
+                <input type="text" class="info-input">
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bảng danh sách phòng -->
+    <table class="rooms-table">
+        <thead>
+            <tr>
+                <!-- Đã bỏ cột STT -->
+                <th class="room-number">Phòng</th>
+                <th class="room-status">Tình trạng</th>
+                <th class="guest-info-cell">Thông tin khách</th>
+                <th class="notes-cell">Ghi chú</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for room in rooms %}
+            <tr>
+                <!-- Đã bỏ cột STT -->
+                <td class="room-number">{{ room.roomNo }}</td>
+                <td class="room-status">{{ room.roomStatus.upper() }}</td>
+                <td class="guest-info">
+                    <div class="guest-row">
+                        {% if room.currentGuest.name and room.currentGuest.name.strip() %}
+                        <div class="guest-line">
+                            <span class="guest-name">{{ room.currentGuest.name }}</span>
+                            <div class="guest-details">
+                                <span>CI:{{ room.currentGuest.checkIn if room.currentGuest.checkIn != '00-01-00' else '--/--/--' }}</span>
+                                <span class="separator">|</span>
+                                <span>CO:{{ room.currentGuest.checkOut if room.currentGuest.checkOut != '00-01-00' else '--/--/--' }}</span>
+                                <span class="separator">|</span>
+                                <span class="guest-pax">{{ room.currentGuest.pax }}p</span>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="empty-guest"></div>
+                        {% endif %}
+                    </div>
+                    <div class="guest-row">
+                        {% if room.newGuest.name and room.newGuest.name.strip() %}
+                        <div class="guest-line">
+                            <span class="guest-name">{{ room.newGuest.name }}</span>
+                            <div class="guest-details">
+                                <span>CI:{{ room.newGuest.checkIn if room.newGuest.checkIn != '00-01-00' else '--/--/--' }}</span>
+                                <span class="separator">|</span>
+                                <span>CO:{{ room.newGuest.checkOut if room.newGuest.checkOut != '00-01-00' else '--/--/--' }}</span>
+                                <span class="separator">|</span>
+                                <span class="guest-pax">{{ room.newGuest.pax }}p</span>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="empty-guest"></div>
+                        {% endif %}
+                    </div>
+                </td>
+                <td class="notes">{{ room.notes or '' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script>
+        // Tự động kích hoạt in khi trang được tải
+        window.onload = function() {
+            // Tự động in khi trang được tải (có thể comment dòng này nếu muốn người dùng tự click in)
+            // window.print();
+        };
+    </script>
+</body>
+</html>

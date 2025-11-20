@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo cáo Housekeeping - Kamala</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .container {
+                max-width: 100% !important;
+            }
+            .table {
+                font-size: 12px;
+            }
+        }
+        body {
+            font-family: 'DejaVu Sans', Arial, sans-serif;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+        .hotel-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .report-title {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        .report-period {
+            font-size: 14px;
+            color: #666;
+        }
+        .summary-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .staff-stats {
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <!-- Header -->
+        <div class="header">
+            <div class="hotel-name">KAMALA HOTEL</div>
+            <div class="report-title">BÁO CÁO HOUSEKEEPING</div>
+            <div class="report-period">
+                Thời gian báo cáo: {{ report_time.strftime('%H:%M %d/%m/%Y') }}
+            </div>
+        </div>
+
+        <!-- Summary Statistics -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="summary-card">
+                    <h5>Tổng quan</h5>
+                    <div class="row">
+                        <div class="col-6">
+                            <strong>Tổng thao tác:</strong> {{ statistics.total_actions }}
+                        </div>
+                        <div class="col-6">
+                            <strong>Số nhân viên:</strong> {{ statistics.staff_stats|length }}
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-6">
+                            <strong>Dọn phòng trống:</strong> {{ statistics.action_types.get('dọn phòng trống', 0) }}
+                        </div>
+                        <div class="col-6">
+                            <strong>Dọn phòng ở:</strong> {{ statistics.action_types.get('dọn phòng ở', 0) }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Staff Statistics -->
+        {% if statistics.staff_stats %}
+        <div class="staff-stats">
+            <h5>Thống kê theo nhân viên</h5>
+            <div class="row">
+                {% for staff, stats in statistics.staff_stats.items() %}
+                <div class="col-md-4 mb-3">
+                    <div class="border p-2">
+                        <div class="d-flex justify-content-between">
+                            <strong>{{ staff }}</strong>
+                            <span class="badge bg-primary">{{ stats.total }}</span>
+                        </div>
+                        <div class="small">
+                            <span class="text-success">Phòng trống: {{ stats['dọn phòng trống'] }}</span> | 
+                            <span class="text-warning">Phòng ở: {{ stats['dọn phòng ở'] }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Report Table -->
+        <h5 class="mt-4">Chi tiết thao tác</h5>
+        <table class="table table-bordered table-sm">
+            <thead class="table-dark">
+                <tr>
+                    <th>STT</th>
+                    <th>Nhân viên</th>
+                    <th>Phòng</th>
+                    <th>Loại thao tác</th>
+                    <th>Trạng thái mới</th>
+                    <th>Chi tiết</th>
+                    <th>Thời gian</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if report_data %}
+                    {% for item in report_data %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ item.user_name }}</td>
+                        <td><strong>{{ item.room_no }}</strong></td>
+                        <td>
+                            {% if item.action_type == 'dọn phòng trống' %}
+                                <span class="badge bg-success">{{ item.action_type }}</span>
+                            {% elif item.action_type == 'dọn phòng ở' %}
+                                <span class="badge bg-warning text-dark">{{ item.action_type }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ item.action_type }}</span>
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ item.new_status.upper() }}</strong></td>
+                        <td>{{ item.action_detail }}</td>
+                        <td>{{ item.timestamp.strftime('%H:%M %d/%m/%Y') }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-3">
+                            Không có dữ liệu báo cáo trong khoảng thời gian từ 8h15 đến hiện tại
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+        <!-- Print Button -->
+        <div class="no-print text-center mt-4">
+            <button class="btn btn-primary" onclick="window.print()">
+                <i class="fas fa-print me-2"></i>In báo cáo
+            </button>
+            <button class="btn btn-secondary ms-2" onclick="window.close()">
+                <i class="fas fa-times me-2"></i>Đóng
+            </button>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-4 text-muted small">
+            Báo cáo được tạo tự động từ Hệ thống Quản lý Housekeeping Kamala
+        </div>
+    </div>
+
+    <!-- Bootstrap & Font Awesome -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+</body>
+</html>

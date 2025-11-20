@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Kamala Housekeeping Management System</title>
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/room_modal.css') }}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">
+                <i class="fas fa-hotel me-2"></i>KAMALA
+            </span>
+            <div class="navbar-text d-flex align-items-center">
+                {% if user %}
+                <div class="me-3 text-light">
+                    <small>Xin chào, <strong>{{ user.name }}</strong> ({{ user.department }})</small>
+                </div>
+                {% endif %}
+                
+                <!-- Menu Tác vụ -->
+                <div class="dropdown">
+                    <button class="btn btn-outline-light dropdown-toggle" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-bars"></i> Tác vụ
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionsDropdown">
+                        <!-- Chỉ FO mới thấy nút Update Data -->
+                        {% if user and user.department == 'FO' %}
+                        <li>
+                            <a class="dropdown-item" href="#" onclick="showUpdateModal()">
+                                <i class="fas fa-sync-alt me-2"></i>Update Data
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        <!-- Nút Báo cáo HK - Hiển thị cho cả FO và HK -->
+                        {% if user and (user.department == 'FO' or user.department == 'HK') %}
+                        <li>
+                            <a class="dropdown-item" href="#" onclick="showHKReportModal()">
+                                <i class="fas fa-chart-bar me-2"></i>Báo cáo HK
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        <!-- Chỉ FO mới thấy nút In Tasksheet -->
+                        {% if user and user.department == 'FO' %}
+                        <li>
+                            <a class="dropdown-item" href="#" onclick="printTasksheet()">
+                                <i class="fas fa-print me-2"></i>In Tasksheet
+                            </a>
+                        </li>
+                        {% endif %}
+                        
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('logout') }}">
+                                <i class="fas fa-sign-out-alt me-2"></i>Đăng xuất
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <span class="ms-2 text-light" id="last-updated">Đang tải...</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-3">
+        <!-- File Info -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body py-2">
+                        <div class="row align-items-center">
+                            <div class="col-12">
+                                <small class="text-muted" id="file-info">
+                                    <i class="fas fa-database me-1"></i>Đang tải thông tin file...
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Buttons với số lượng -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body py-2">
+                        <div class="filter-buttons">
+                            <button type="button" class="btn btn-outline-primary active" data-filter="all">
+                                Tất cả <span class="badge bg-secondary ms-1" id="count-all">0</span>
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" data-filter="occupied">
+                                Đang ở <span class="badge bg-secondary ms-1" id="count-occupied">0</span>
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" data-filter="arrival">
+                                Có khách đến <span class="badge bg-secondary ms-1" id="count-arrival">0</span>
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" data-filter="cleaned">
+                                Phòng đã dọn <span class="badge bg-secondary ms-1" id="count-cleaned">0</span>
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" data-filter="not-cleaned">
+                                Phòng chưa dọn <span class="badge bg-secondary ms-1" id="count-not-cleaned">0</span>
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" data-filter="checked">
+                                Phòng đã kiểm <span class="badge bg-secondary ms-1" id="count-checked">0</span>
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" data-filter="not-departed">
+                                Phòng chưa rời đi <span class="badge bg-secondary ms-1" id="count-not-departed">0</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floors Container -->
+        <div id="floors-container">
+            <!-- Floors will be populated by JavaScript -->
+        </div>
+
+        <!-- Loading Spinner -->
+        <div class="text-center py-5" id="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Đang tải...</span>
+            </div>
+            <p class="mt-2">Đang tải dữ liệu phòng...</p>
+        </div>
+
+        <!-- Error Message -->
+        <div class="alert alert-danger text-center" id="error-message" style="display: none;">
+            <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+            <h4>Không thể tải dữ liệu</h4>
+            <p id="error-text">Vui lòng thử lại sau</p>
+            <button class="btn btn-primary" onclick="loadData()">
+                <i class="fas fa-redo me-2"></i>Thử lại
+            </button>
+        </div>
+    </div>
+
+    <!-- Include Room Detail Modal -->
+    {% include 'room_detail_modal.html' %}
+
+    <!-- Update Data Modal -->
+    <div class="modal fade" id="updateModal" tabindex="-1" aria-labelledby="updateModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="updateModalLabel">
+                        <i class="fas fa-sync-alt me-2"></i>Cập nhật dữ liệu
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Cảnh báo:</strong> Hành động này sẽ tải dữ liệu mới từ Google Sheets và ghi đè toàn bộ thay đổi hiện tại. Bạn có chắc chắn?
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Mật khẩu xác nhận</label>
+                        <input type="password" class="form-control" id="password" placeholder="Nhập mật khẩu">
+                        <div class="form-text">Mật khẩu mặc định: 123456</div>
+                    </div>
+                    
+                    <div class="alert alert-danger" id="update-error" style="display: none;">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <span id="update-error-text"></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-warning" onclick="confirmUpdate()">
+                        <i class="fas fa-sync-alt me-2"></i>Cập nhật từ Google Sheets
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include HK Report Modal -->
+    {% include 'report.html' %}
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/room_modal.js') }}"></script>
+    <!-- Thêm report.js -->
+    <script src="{{ url_for('static', filename='js/report.js') }}"></script>
+    
+    <script>
+        // Hàm in tasksheet
+        function printTasksheet() {
+            // Mở tasksheet trong cửa sổ mới để in
+            window.open('/print-tasksheet', '_blank');
+        }
+    </script>
+</body>
+</html>
