@@ -1,48 +1,18 @@
-import json
-import os
-from datetime import datetime, time
-from config import Config
+# models/hk_logger.py
 import logging
+from datetime import datetime, timedelta
+from config import Config
 
 logger = logging.getLogger(__name__)
 
 class HKLogger:
-    def __init__(self):
-        self.log_file = os.path.join(Config.DATA_DIR, 'hk_activity_log.json')
-        self.notes_log_file = os.path.join(Config.DATA_DIR, 'notes_history_log.json')
-        self._ensure_log_files()
+    def __init__(self, db_manager):
+        self.db = db_manager
     
-    def _ensure_log_files(self):
-        """Đảm bảo file log tồn tại"""
-        os.makedirs(Config.DATA_DIR, exist_ok=True)
-        
-        if not os.path.exists(self.log_file):
-            with open(self.log_file, 'w', encoding='utf-8') as f:
-                json.dump([], f, ensure_ascii=False, indent=2)
-        
-        if not os.path.exists(self.notes_log_file):
-            with open(self.notes_log_file, 'w', encoding='utf-8') as f:
-                json.dump([], f, ensure_ascii=False, indent=2)
-    
-    def _is_within_report_period(self, timestamp_str):
-        """Kiểm tra xem thời gian có nằm trong khoảng báo cáo (từ 8h15 hôm nay) không"""
-        try:
-            timestamp = datetime.fromisoformat(timestamp_str)
-            today_8_15 = datetime.now().replace(hour=8, minute=15, second=0, microsecond=0)
-            
-            # Nếu bây giờ chưa đến 8h15, lấy 8h15 của hôm qua
-            if datetime.now() < today_8_15:
-                today_8_15 = today_8_15.replace(day=today_8_15.day - 1)
-            
-            return timestamp >= today_8_15
-        except Exception as e:
-            logger.error(f"Lỗi kiểm tra thời gian: {e}")
-            return False
-    
-    def log_room_status_change(self, room_no, old_status, new_status, user_name):
+    def log_room_status_change(self, room_no, old_status, new_status, user_name, user_department="HK"):
         """Ghi log thay đổi trạng thái phòng"""
         try:
-            # Chỉ log các chuyển đổi quan trọng
+            # Chỉ log các chuyển đổi quan trọng (giữ nguyên logic cũ)
             important_transitions = [
                 ('vd', 'vc'), ('vd/arr', 'vc/arr'),  # Dọn phòng trống
                 ('od', 'oc'), ('od', 'dnd'), ('od', 'nn')  # Dọn phòng ở
@@ -51,7 +21,7 @@ class HKLogger:
             if (old_status, new_status) not in important_transitions:
                 return
             
-            # Xác định loại thao tác
+            # Xác định loại thao tác (giữ nguyên logic cũ)
             if (old_status, new_status) in [('vd', 'vc'), ('vd/arr', 'vc/arr')]:
                 action_type = "dọn phòng trống"
                 action_detail = f"{old_status.upper()} → {new_status.upper()}"
@@ -59,99 +29,121 @@ class HKLogger:
                 action_type = "dọn phòng ở"
                 action_detail = f"{old_status.upper()} → {new_status.upper()}"
             
-            log_entry = {
-                'timestamp': datetime.now().isoformat(),
-                'user_name': user_name,
-                'room_no': room_no,
-                'activity_type': 'room_status',
-                'action_type': action_type,
-                'action_detail': action_detail,
-                'old_status': old_status,
-                'new_status': new_status
-            }
+            with self.db.get_connection() as conn:
+                conn.execute('''
+                    INSERT INTO activity_logs 
+                    (user_name, user_department, room_no, action_type, old_status, new_status, action_detail)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    user_name,
+                    user_department,
+                    room_no,
+                    action_type,
+                    old_status,
+                    new_status,
+                    action_detail
+                ))
+                conn.commit()
             
-            # Đọc log hiện tại
-            with open(self.log_file, 'r', encoding='utf-8') as f:
-                logs = json.load(f)
-            
-            # Thêm log mới
-            logs.append(log_entry)
-            
-            # Giới hạn số lượng log (giữ 1000 bản ghi gần nhất)
-            if len(logs) > 1000:
-                logs = logs[-1000:]
-            
-            # Ghi lại file
-            with open(self.log_file, 'w', encoding='utf-8') as f:
-                json.dump(logs, f, ensure_ascii=False, indent=2)
-            
-            logger.info(f"Đã ghi log HK: {room_no} - {action_type} bởi {user_name}")
+            logger.info(f"✅ Đã ghi log HK: {room_no} - {action_type} bởi {user_name}")
             
         except Exception as e:
-            logger.error(f"Lỗi ghi log HK: {e}")
+            logger.error(f"❌ Lỗi ghi log HK: {e}")
     
-    def log_note_change(self, room_no, old_note, new_note, user_name):
+    def log_note_change(self, room_no, old_note, new_note, user_name, user_department="HK"):
         """Ghi log thay đổi ghi chú"""
         try:
-            # Chỉ log nếu có thay đổi thực sự
+            # Chỉ log nếu có thay đổi thực sự (giữ nguyên logic cũ)
             if old_note == new_note:
                 return
             
-            log_entry = {
-                'timestamp': datetime.now().isoformat(),
-                'user_name': user_name,
-                'room_no': room_no,
-                'activity_type': 'note_change',
-                'old_note': old_note or '',
-                'new_note': new_note or '',
-                'action_type': 'cập nhật ghi chú',
-                'action_detail': f'Ghi chú: "{old_note or "Trống"}" → "{new_note or "Trống"}"'
-            }
+            action_detail = f'Ghi chú: "{old_note or "Trống"}" → "{new_note or "Trống"}"'
             
-            # Đọc log ghi chú hiện tại
-            with open(self.notes_log_file, 'r', encoding='utf-8') as f:
-                notes_logs = json.load(f)
+            with self.db.get_connection() as conn:
+                conn.execute('''
+                    INSERT INTO activity_logs 
+                    (user_name, user_department, room_no, action_type, action_detail)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (
+                    user_name,
+                    user_department,
+                    room_no,
+                    'cập nhật ghi chú',
+                    action_detail
+                ))
+                conn.commit()
             
-            # Thêm log mới
-            notes_logs.append(log_entry)
-            
-            # Giới hạn số lượng log (giữ 500 bản ghi gần nhất)
-            if len(notes_logs) > 500:
-                notes_logs = notes_logs[-500:]
-            
-            # Ghi lại file
-            with open(self.notes_log_file, 'w', encoding='utf-8') as f:
-                json.dump(notes_logs, f, ensure_ascii=False, indent=2)
-            
-            logger.info(f"Đã ghi log ghi chú: {room_no} bởi {user_name}")
+            logger.info(f"✅ Đã ghi log ghi chú: {room_no} bởi {user_name}")
             
         except Exception as e:
-            logger.error(f"Lỗi ghi log ghi chú: {e}")
+            logger.error(f"❌ Lỗi ghi log ghi chú: {e}")
+    
+    def log_room_cleaning(self, room_no, user_name, user_department="HK", notes=""):
+        """Ghi log dọn phòng (bổ sung thêm)"""
+        try:
+            with self.db.get_connection() as conn:
+                conn.execute('''
+                    INSERT INTO activity_logs 
+                    (user_name, user_department, room_no, action_type, action_detail)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (
+                    user_name,
+                    user_department,
+                    room_no,
+                    'dọn phòng',
+                    notes or 'Đã hoàn thành dọn phòng'
+                ))
+                conn.commit()
+                
+            logger.info(f"✅ Đã ghi log dọn phòng: {room_no} bởi {user_name}")
+            
+        except Exception as e:
+            logger.error(f"❌ Lỗi log_room_cleaning: {e}")
     
     def get_today_report(self):
-        """Lấy báo cáo từ 8h15 đến hiện tại (cả trạng thái và ghi chú)"""
+        """Lấy báo cáo từ 8h15 đến hiện tại"""
         try:
-            # Đọc log trạng thái
-            with open(self.log_file, 'r', encoding='utf-8') as f:
-                status_logs = json.load(f)
+            now = datetime.now()
+            start_time = now.replace(
+                hour=Config.HK_REPORT_START_HOUR, 
+                minute=Config.HK_REPORT_START_MINUTE, 
+                second=0, 
+                microsecond=0
+            )
             
-            # Đọc log ghi chú
-            with open(self.notes_log_file, 'r', encoding='utf-8') as f:
-                notes_logs = json.load(f)
+            # Nếu bây giờ là trước 8h15, thì lấy từ 8h15 ngày hôm trước
+            if now < start_time:
+                start_time = start_time - timedelta(days=1)
             
-            # Kết hợp cả hai loại log
-            all_logs = status_logs + notes_logs
-            
-            # Lọc log trong khoảng thời gian báo cáo
-            today_logs = [log for log in all_logs if self._is_within_report_period(log['timestamp'])]
-            
-            # Sắp xếp theo thời gian mới nhất
-            today_logs.sort(key=lambda x: x['timestamp'], reverse=True)
-            
-            return today_logs
-            
+            with self.db.get_connection() as conn:
+                rows = conn.execute('''
+                    SELECT * FROM activity_logs 
+                    WHERE timestamp >= ?
+                    ORDER BY timestamp DESC
+                ''', (start_time,)).fetchall()
+                
+                # Convert để tương thích với format cũ
+                report_data = []
+                for row in rows:
+                    log_entry = dict(row)
+                    
+                    # Map các trường để tương thích với frontend
+                    report_data.append({
+                        'timestamp': log_entry['timestamp'],
+                        'user_name': log_entry['user_name'],
+                        'room_no': log_entry['room_no'],
+                        'action_type': log_entry['action_type'],
+                        'action_detail': log_entry['action_detail'],
+                        'old_status': log_entry.get('old_status', ''),
+                        'new_status': log_entry.get('new_status', ''),
+                        # Thêm các trường để tương thích
+                        'activity_type': 'room_status' if log_entry.get('old_status') else 'note_change'
+                    })
+                
+                return report_data
+                
         except Exception as e:
-            logger.error(f"Lỗi đọc báo cáo HK: {e}")
+            logger.error(f"❌ Lỗi get_today_report: {e}")
             return []
     
     def get_report_statistics(self, report_data):
@@ -166,7 +158,8 @@ class HKLogger:
             'action_types': {
                 'dọn phòng trống': 0,
                 'dọn phòng ở': 0,
-                'cập nhật ghi chú': 0
+                'cập nhật ghi chú': 0,
+                'dọn phòng': 0
             }
         }
         
@@ -178,7 +171,8 @@ class HKLogger:
                     'total': 0,
                     'dọn phòng trống': 0,
                     'dọn phòng ở': 0,
-                    'cập nhật ghi chú': 0
+                    'cập nhật ghi chú': 0,
+                    'dọn phòng': 0
                 }
             
             stats['staff_stats'][staff_name]['total'] += 1
@@ -192,24 +186,89 @@ class HKLogger:
             action_type = log.get('action_type', '')
             if action_type in stats['action_types']:
                 stats['action_types'][action_type] += 1
-                stats['staff_stats'][staff_name][action_type] += 1
+                if action_type in stats['staff_stats'][staff_name]:
+                    stats['staff_stats'][staff_name][action_type] += 1
         
         return stats
     
     def get_notes_history(self, room_no=None):
         """Lấy lịch sử ghi chú (có thể lọc theo phòng)"""
         try:
-            with open(self.notes_log_file, 'r', encoding='utf-8') as f:
-                notes_logs = json.load(f)
-            
-            if room_no:
-                notes_logs = [log for log in notes_logs if log['room_no'] == room_no]
-            
-            # Sắp xếp theo thời gian mới nhất
-            notes_logs.sort(key=lambda x: x['timestamp'], reverse=True)
-            
-            return notes_logs
-            
+            with self.db.get_connection() as conn:
+                if room_no:
+                    rows = conn.execute('''
+                        SELECT * FROM activity_logs 
+                        WHERE action_type = 'cập nhật ghi chú' AND room_no = ?
+                        ORDER BY timestamp DESC
+                    ''', (room_no,)).fetchall()
+                else:
+                    rows = conn.execute('''
+                        SELECT * FROM activity_logs 
+                        WHERE action_type = 'cập nhật ghi chú'
+                        ORDER BY timestamp DESC
+                    ''').fetchall()
+                
+                notes_history = []
+                for row in rows:
+                    notes_history.append({
+                        'timestamp': row['timestamp'],
+                        'user_name': row['user_name'],
+                        'room_no': row['room_no'],
+                        'action_detail': row['action_detail'],
+                        'old_note': '',  # Có thể parse từ action_detail nếu cần
+                        'new_note': ''   # Có thể parse từ action_detail nếu cần
+                    })
+                
+                return notes_history
+                
         except Exception as e:
-            logger.error(f"Lỗi đọc lịch sử ghi chú: {e}")
+            logger.error(f"❌ Lỗi get_notes_history: {e}")
+            return []
+    
+    def clear_all_logs(self):
+        """Xóa toàn bộ logs (chỉ FO)"""
+        try:
+            with self.db.get_connection() as conn:
+                conn.execute('DELETE FROM activity_logs')
+                conn.commit()
+                logger.info("✅ Đã xóa toàn bộ logs HK")
+                return True
+                
+        except Exception as e:
+            logger.error(f"❌ Lỗi clear_all_logs: {e}")
+            return False
+    
+    def get_activity_by_user(self, user_name, days=7):
+        """Lấy hoạt động của một nhân viên trong khoảng thời gian"""
+        try:
+            start_date = datetime.now() - timedelta(days=days)
+            
+            with self.db.get_connection() as conn:
+                rows = conn.execute('''
+                    SELECT * FROM activity_logs 
+                    WHERE user_name = ? AND timestamp >= ?
+                    ORDER BY timestamp DESC
+                ''', (user_name, start_date)).fetchall()
+                
+                return [dict(row) for row in rows]
+                
+        except Exception as e:
+            logger.error(f"❌ Lỗi get_activity_by_user: {e}")
+            return []
+    
+    def get_room_activity_history(self, room_no, limit=50):
+        """Lấy lịch sử hoạt động của một phòng"""
+        try:
+            with self.db.get_connection() as conn:
+                rows = conn.execute('''
+                    SELECT * FROM activity_logs 
+                    WHERE room_no = ?
+                    ORDER BY timestamp DESC
+                    LIMIT ?
+                ''', (room_no, limit)).fetchall()
+                
+                return [dict(row) for row in rows]
+                
+        except Exception as e:
+            logger.error(f"❌ Lỗi get_room_activity_history: {e}")
             return []
