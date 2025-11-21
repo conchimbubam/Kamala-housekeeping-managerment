@@ -41,10 +41,10 @@ def create_app():
     app.data_processor = data_processor
     app.hk_logger = hk_logger
 
-    # ==================== BACKUP SYSTEM ====================
+    # ==================== BACKUP SYSTEM (EVENT-BASED) ====================
 
     def create_backup():
-        """Tạo bản sao lưu database"""
+        """Tạo bản sao lưu database - CHỈ GIỮ 5 BẢN GẦN NHẤT"""
         try:
             backup_dir = Path("backups")
             backup_dir.mkdir(exist_ok=True)
@@ -56,8 +56,8 @@ def create_app():
             # Sao chép file database
             shutil.copy2(Config.DATABASE_PATH, backup_file)
             
-            # Giới hạn số lượng backup file (giữ lại 24 file mới nhất = 4 giờ)
-            cleanup_old_backups(backup_dir, keep_count=24)
+            # CHỈ GIỮ LẠI 5 BACKUP GẦN NHẤT (thay vì 24)
+            cleanup_old_backups(backup_dir, keep_count=5)
             
             logger.info(f"✅ Đã tạo backup: {backup_file}")
             return True
@@ -66,7 +66,7 @@ def create_app():
             logger.error(f"❌ Lỗi tạo backup: {e}")
             return False
 
-    def cleanup_old_backups(backup_dir, keep_count=24):
+    def cleanup_old_backups(backup_dir, keep_count=5):
         """Xóa các bản backup cũ, chỉ giữ lại `keep_count` bản mới nhất"""
         try:
             backup_files = list(backup_dir.glob("hotel_backup_*.db"))
@@ -80,22 +80,34 @@ def create_app():
         except Exception as e:
             logger.error(f"Lỗi khi dọn dẹp backup cũ: {e}")
 
-    def backup_scheduler():
-        """Lên lịch backup tự động mỗi 10 phút"""
-        while True:
-            try:
-                create_backup()
-                # Chờ 10 phút (600 giây)
-                time.sleep(600)
-            except Exception as e:
-                logger.error(f"Lỗi trong backup scheduler: {e}")
-                time.sleep(60)  # Chờ 1 phút nếu có lỗi
-
-    def start_backup_service():
-        """Khởi động service backup trong thread riêng"""
-        backup_thread = threading.Thread(target=backup_scheduler, daemon=True)
-        backup_thread.start()
-        logger.info("🔄 Backup service đã khởi động - Tự động sao lưu mỗi 10 phút")
+    def restore_latest_backup():
+        """Tìm và khôi phục backup gần nhất khi app khởi động"""
+        try:
+            backup_dir = Path("backups")
+            if not backup_dir.exists():
+                logger.info("📂 Thư mục backup không tồn tại")
+                return False
+            
+            backup_files = list(backup_dir.glob("hotel_backup_*.db"))
+            if not backup_files:
+                logger.info("📭 Không tìm thấy file backup nào")
+                return False
+            
+            # Sắp xếp theo thời gian tạo (mới nhất đầu tiên)
+            backup_files.sort(key=os.path.getctime, reverse=True)
+            latest_backup = backup_files[0]
+            
+            # Sao chép backup vào database chính
+            shutil.copy2(latest_backup, Config.DATABASE_PATH)
+            
+            backup_time = datetime.fromtimestamp(latest_backup.stat().st_ctime)
+            logger.info(f"✅ Đã khôi phục từ backup: {latest_backup.name} (tạo lúc {backup_time})")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Lỗi khôi phục backup: {e}")
+            return False
 
     # ==================== DECORATORS PHÂN QUYỀN ====================
 
@@ -462,9 +474,12 @@ def create_app():
     @login_required
     @fo_required
     def refresh_data():
-        """API endpoint để refresh dữ liệu từ Google Sheets (chỉ FO)"""
+        """API endpoint để refresh dữ liệu từ Google Sheets (chỉ FO) - CÓ BACKUP"""
         try:
             user_info = f"{session.get('user_info', {}).get('name', 'Unknown')} ({session.get('user_info', {}).get('department', 'Unknown')})"
+            
+            # ✅ TẠO BACKUP TRƯỚC KHI REFRESH (vì sẽ thay đổi nhiều dữ liệu)
+            threading.Thread(target=create_backup, daemon=True).start()
             
             # Sử dụng phương thức mới để khởi tạo từ Google Sheets
             success = app.data_processor.initialize_rooms_from_google_sheets(user_info)
@@ -497,7 +512,7 @@ def create_app():
     @app.route('/api/rooms/update', methods=['POST'])
     @login_required
     def update_room():
-        """API endpoint để cập nhật thông tin một phòng"""
+        """API endpoint để cập nhật thông tin một phòng - CÓ BACKUP"""
         try:
             data = request.get_json()
             room_no = data.get('roomNo')
@@ -566,6 +581,9 @@ def create_app():
                     'error': 'Không thể cập nhật phòng'
                 }), 500
             
+            # ✅ TẠO BACKUP SAU KHI CẬP NHẬT THÀNH CÔNG
+            threading.Thread(target=create_backup, daemon=True).start()
+            
             # GHI LOG THAY ĐỔI TRẠNG THÁI PHÒNG
             if old_status and new_status and old_status != new_status:
                 app.hk_logger.log_room_status_change(
@@ -620,7 +638,7 @@ def create_app():
     @login_required
     @hk_required
     def hk_quick_update():
-        """API cho HK cập nhật nhanh trạng thái phòng"""
+        """API cho HK cập nhật nhanh trạng thái phòng - CÓ BACKUP"""
         try:
             data = request.get_json()
             room_no = data.get('roomNo')
@@ -683,6 +701,9 @@ def create_app():
                     'success': False,
                     'error': 'Không thể cập nhật phòng'
                 }), 500
+            
+            # ✅ TẠO BACKUP SAU KHI CẬP NHẬT THÀNH CÔNG
+            threading.Thread(target=create_backup, daemon=True).start()
             
             # GHI LOG THAY ĐỔI TRẠNG THÁI PHÒNG
             app.hk_logger.log_room_status_change(
@@ -765,12 +786,18 @@ def create_app():
 
     # ==================== KHỞI TẠO DỮ LIỆU ====================
 
-    # ==================== KHỞI TẠO DỮ LIỆU ====================
-
     def initialize_data():
-        """Khởi tạo dữ liệu nếu database trống"""
+        """Khởi tạo dữ liệu - Ưu tiên khôi phục từ backup trước"""
         try:
             if app.db_manager.is_database_empty():
+                # THỬ KHÔI PHỤC TỪ BACKUP TRƯỚC
+                backup_restored = restore_latest_backup()
+                
+                if backup_restored:
+                    logger.info("✅ Đã khôi phục dữ liệu từ backup gần nhất")
+                    return
+                
+                # Nếu không có backup, mới lấy từ Google Sheets
                 logger.info("🔄 Khởi tạo dữ liệu lần đầu từ Google Sheets...")
                 success = app.data_processor.initialize_rooms_from_google_sheets('system_initialization')
                 if success:
@@ -785,25 +812,25 @@ def create_app():
     with app.app_context():
         initialize_data()
         
-        # Khởi động backup service
-        start_backup_service()
+        # 🗑️ XÓA DÒNG NÀY: start_backup_service()
+        # Vì giờ backup sẽ chạy theo event, không cần scheduler
+        # start_backup_service()
 
     return app
-app = create_app()
 
 if __name__ == '__main__':
     app = create_app()
     
-    print("🚀 Dashboard Quản Lý Khách Sạn - SQLITE EDITION")
+    print("🚀 Dashboard Quản Lý Khách Sạn - EVENT-BASED BACKUP EDITION")
     print("=" * 50)
     print("🔐 Đăng nhập: http://localhost:5000/login")
     print("🏨 Dashboard: http://localhost:5000/")
     print("🗃️  Database: data/hotel.db")
-    print("💾 Backup: Tự động sao lưu mỗi 10 phút")
+    print("💾 Backup: Tự động sao lưu KHI CÓ CẬP NHẬT")
     print("🎯 TÍNH NĂNG MỚI:")
-    print("   • Auto Backup - Sao lưu mỗi 10 phút")
-    print("   • Backup Management - Quản lý bản sao lưu")
-    print("   • Restore System - Khôi phục dữ liệu")
+    print("   • Event-Based Backup - Sao lưu khi có thay đổi")
+    print("   • Chỉ giữ 5 bản backup gần nhất")
+    print("   • Tự động khôi phục từ backup khi khởi động")
     print("📊 BACKUP API:")
     print("   • List: GET http://localhost:5000/api/backup/list")
     print("   • Create: POST http://localhost:5000/api/backup/create")
@@ -814,5 +841,4 @@ if __name__ == '__main__':
         host='0.0.0.0', 
         port=5000, 
         debug=app.config['DEBUG']
-
     )
