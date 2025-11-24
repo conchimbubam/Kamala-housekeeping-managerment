@@ -1,8 +1,22 @@
 # config.py
 import os
+from datetime import timedelta
+import re
 
 class Config:
-    """Cấu hình ứng dụng với SQLite Database"""
+    """Cấu hình ứng dụng với PostgreSQL Database cho Render"""
+    
+    # ==================== RENDER POSTGRESQL DATABASE CONFIG ====================
+    # Sử dụng thông tin bạn cung cấp
+    DB_HOST = 'dpg-d4hu220gjchc73dh9ogg-a'  # Host từ Render
+    DB_PORT = '5432'  # Port mặc định PostgreSQL
+    DB_NAME = 'hotel_management'  # Tên database (có thể cần điều chỉnh)
+    DB_USER = 'hotel_user'  # Username (có thể cần điều chỉnh)
+    DB_PASSWORD = 'dpg-d4hu220gjchc73dh9ogg-a'  # Password từ Render
+    
+    # PostgreSQL connection string
+    SQLALCHEMY_DATABASE_URI = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # ==================== GOOGLE SHEETS CONFIG ====================
     API_KEY = os.environ.get('API_KEY', 'AIzaSyCY5tu6rUE7USAnr0ALlhBAKlx-wmLYv6A')
@@ -10,49 +24,42 @@ class Config:
     RANGE_NAME = os.environ.get('RANGE_NAME', 'A2:J63')
     
     # ==================== FLASK CONFIG ====================
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'hotel-management-secret-key-2024')
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'hotel-management-render-secret-key-2024')
     DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
     
-    # ==================== DATABASE CONFIG (MỚI) ====================
-    DATA_DIR = os.environ.get('DATA_DIR', 'data')
+    # Session configuration
+    PERMANENT_SESSION_LIFETIME = timedelta(hours=8)
     
-    # Database SQLite path
-    DATABASE_PATH = os.path.join(DATA_DIR, 'hotel.db')
-    
-    # Backup configuration
-    BACKUP_DIR = os.path.join(DATA_DIR, 'backups')
-    BACKUP_RETENTION_DAYS = 7  # Giữ backup trong 7 ngày
-    
-    # ==================== APPLICATION CONFIG ====================
-    # Session timeout (minutes)
-    SESSION_TIMEOUT = 480  # 8 hours
-    
-    # Logging configuration
-    LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
-    LOG_FILE = os.path.join(DATA_DIR, 'app.log')
-    
-    # HK Report configuration
+    # ==================== APPLICATION SETTINGS ====================
+    DEPARTMENT_CODE = os.environ.get('DEPARTMENT_CODE', '123')
     HK_REPORT_START_HOUR = 8
     HK_REPORT_START_MINUTE = 15
     
-    # ==================== SECURITY CONFIG ====================
-    # Department code for login (có thể chuyển sang database sau này)
-    DEPARTMENT_CODE = '123'
+    # Backup configuration
+    BACKUP_RETENTION_COUNT = 5
     
-    # Rate limiting (có thể triển khai sau)
-    RATE_LIMIT_ENABLED = False
-    
-    # ==================== INITIALIZATION ====================
-    # Đảm bảo các thư mục cần thiết tồn tại
+    # ==================== RENDER SPECIFIC ====================
     @classmethod
-    def ensure_directories_exist(cls):
-        """Đảm bảo các thư mục data và backups tồn tại"""
-        directories = [cls.DATA_DIR, cls.BACKUP_DIR]
+    def is_render(cls):
+        """Kiểm tra có đang chạy trên Render không"""
+        return 'RENDER' in os.environ
+    
+    @classmethod
+    def print_config_summary(cls):
+        """In summary cấu hình"""
+        print("=" * 50)
+        print("🏨 Hotel Management System - Render Deployment")
+        print("=" * 50)
+        print(f"🌐 Environment: {'Render' if cls.is_render() else 'Local'}")
+        print(f"📊 Database: {cls.DB_NAME}@{cls.DB_HOST}:{cls.DB_PORT}")
+        print(f"👤 Database User: {cls.DB_USER}")
+        print(f"🔐 Authentication: Department Code Required")
+        print(f"🐛 Debug Mode: {cls.DEBUG}")
         
-        for directory in directories:
-            if not os.path.exists(directory):
-                os.makedirs(directory)
-                print(f"✅ Đã tạo thư mục: {directory}")
+        if cls.is_render():
+            print("✅ Optimized for Render Cloud")
+        
+        print("=" * 50)
 
-# Khởi tạo thư mục khi import config
-Config.ensure_directories_exist()
+# In config summary
+Config.print_config_summary()
