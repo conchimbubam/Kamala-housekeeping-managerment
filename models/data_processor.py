@@ -14,7 +14,7 @@ class DataProcessor:
         self.range_name = range_name
     
     def initialize_rooms_from_google_sheets(self, user_info="System"):
-        """Khởi tạo dữ liệu phòng từ Google Sheets lần đầu tiên"""
+        """Khởi tạo dữ liệu phòng từ Google Sheets"""
         try:
             # Lấy dữ liệu từ Google Sheets
             raw_data = self.fetch_data_from_sheets()
@@ -28,57 +28,58 @@ class DataProcessor:
                 logger.warning("Không có dữ liệu phòng sau khi xử lý")
                 return False
             
-            with self.db.get_connection() as conn:
-                # Xóa dữ liệu cũ (nếu có) và insert mới
-                conn.execute('DELETE FROM rooms')
+            # Xóa dữ liệu cũ và insert mới
+            self.db.execute_query("DELETE FROM rooms", fetch=False)
+            
+            for room in rooms_data:
+                # Xử lý thông tin khách
+                current_guest = room.get('currentGuest', {})
                 
-                for room in rooms_data:
-                    # Xử lý thông tin khách
-                    current_guest = room.get('currentGuest', {})
-                    new_guest = room.get('newGuest', {})
-                    
-                    conn.execute('''
-                        INSERT INTO rooms 
-                        (room_no, room_type, room_status, guest_name, check_in, check_out, notes)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                    ''', (
-                        room.get('roomNo', ''),
-                        room.get('roomType', ''),
-                        room.get('roomStatus', 'vc'),
-                        current_guest.get('name', ''),
-                        current_guest.get('checkIn', ''),
-                        current_guest.get('checkOut', ''),
-                        f"Pax: {current_guest.get('pax', 0)}" if current_guest.get('pax', 0) else ''
-                    ))
+                # Xác định floor từ room_no (lấy ký tự đầu)
+                room_no = room.get('roomNo', '')
+                floor = int(room_no[0]) if room_no and room_no[0].isdigit() else 1
                 
-                # Ghi log sync
-                conn.execute('''
-                    INSERT INTO sync_history (synced_by, total_rooms, success)
-                    VALUES (?, ?, ?)
-                ''', (user_info, len(rooms_data), True))
+                room_data = {
+                    'room_no': room_no,
+                    'room_type': room.get('roomType', ''),
+                    'room_status': room.get('roomStatus', 'vd'),
+                    'guest_name': current_guest.get('name', ''),
+                    'check_in': current_guest.get('checkIn', ''),
+                    'check_out': current_guest.get('checkOut', ''),
+                    'notes': f"Pax: {current_guest.get('pax', 0)}" if current_guest.get('pax', 0) else '',
+                    'floor': floor,
+                    'last_updated': datetime.now(),
+                    'updated_by': user_info
+                }
                 
-                conn.commit()
+                self.db.upsert_room(room_data)
+            
+            # Ghi log sync vào file_info table
+            sync_data = {
+                'file_name': f'Google Sheets - {self.spreadsheet_id}',
+                'last_modified': datetime.now(),
+                'total_rows': len(rooms_data),
+                'last_sync': datetime.now(),
+                'sync_by': user_info
+            }
+            
+            self.db.execute_query("DELETE FROM file_info", fetch=False)
+            self.db.execute_insert("""
+                INSERT INTO file_info (file_name, last_modified, total_rows, last_sync, sync_by)
+                VALUES (%(file_name)s, %(last_modified)s, %(total_rows)s, %(last_sync)s, %(sync_by)s)
+            """, sync_data)
             
             logger.info(f"✅ Đã khởi tạo {len(rooms_data)} phòng từ Google Sheets")
             return True
             
         except Exception as e:
             logger.error(f"❌ Lỗi khởi tạo từ Google Sheets: {e}")
-            
-            # Ghi log lỗi
-            with self.db.get_connection() as conn:
-                conn.execute('''
-                    INSERT INTO sync_history (synced_by, total_rooms, success, error_message)
-                    VALUES (?, ?, ?, ?)
-                ''', (user_info, 0, False, str(e)))
-                conn.commit()
-            
             return False
 
-    # ==================== GOOGLE SHEETS METHODS (GIỮ NGUYÊN) ====================
+    # ==================== GOOGLE SHEETS METHODS ====================
     
     def fetch_data_from_sheets(self):
-        """Lấy dữ liệu từ Google Sheets - GIỮ NGUYÊN"""
+        """Lấy dữ liệu từ Google Sheets"""
         url = f'https://sheets.googleapis.com/v4/spreadsheets/{self.spreadsheet_id}/values/{self.range_name}?key={self.api_key}'
         
         try:
@@ -90,9 +91,9 @@ class DataProcessor:
             return None
 
     def clean_room_status(self, status):
-        """Làm sạch và chuẩn hóa trạng thái phòng - GIỮ NGUYÊN"""
+        """Làm sạch và chuẩn hóa trạng thái phòng"""
         if not status:
-            return ''
+            return 'vd'  # Mặc định là Vacant Dirty
         
         status = str(status).strip().upper()
         
@@ -127,9 +128,9 @@ class DataProcessor:
             return status.lower()
 
     def parse_date(self, date_str):
-        """Chuyển đổi định dạng ngày - GIỮ NGUYÊN"""
+        """Chuyển đổi định dạng ngày"""
         if not date_str or date_str == '00-01-00':
-            return '00-01-00'
+            return None
         
         date_str = str(date_str).strip()
         
@@ -154,13 +155,13 @@ class DataProcessor:
                     
                     return f"{day}-{month}-{year}"
             
-            return '00-01-00'
+            return None
         except Exception as e:
             logger.warning(f"Lỗi phân tích ngày tháng: {date_str}, Error: {e}")
-            return '00-01-00'
+            return None
 
     def parse_pax(self, pax_str):
-        """Chuyển đổi số lượng khách sang integer - GIỮ NGUYÊN"""
+        """Chuyển đổi số lượng khách sang integer"""
         if not pax_str:
             return 0
         
@@ -174,7 +175,7 @@ class DataProcessor:
             return 0
 
     def clean_guest_name(self, name_str):
-        """Làm sạch tên khách - GIỮ NGUYÊN"""
+        """Làm sạch tên khách"""
         if not name_str:
             return ''
         
@@ -182,7 +183,7 @@ class DataProcessor:
         return name_clean
 
     def process_room_data(self, raw_data):
-        """Xử lý dữ liệu thô từ Google Sheets - GIỮ NGUYÊN"""
+        """Xử lý dữ liệu thô từ Google Sheets"""
         if not raw_data or 'values' not in raw_data:
             return []
         
@@ -217,8 +218,20 @@ class DataProcessor:
                     'pax': self.parse_pax(row[9])
                 }
                 
+                # Xác định room_type từ room_no
+                room_type = 'Standard'
+                if room_no.startswith('1'):
+                    room_type = 'Standard'
+                elif room_no.startswith('2'):
+                    room_type = 'Superior'
+                elif room_no.startswith('3'):
+                    room_type = 'Deluxe'
+                elif room_no.startswith('4'):
+                    room_type = 'Suite'
+                
                 room_data = {
                     'roomNo': room_no,
+                    'roomType': room_type,
                     'roomStatus': room_status,
                     'currentGuest': current_guest,
                     'newGuest': new_guest
@@ -232,264 +245,374 @@ class DataProcessor:
         
         return rooms_data
 
-    # ==================== DATABASE METHODS (MỚI) ====================
+    # ==================== POSTGRESQL DATABASE METHODS ====================
 
     def get_all_rooms(self):
-        """Lấy tất cả phòng từ database"""
+        """Lấy tất cả phòng từ PostgreSQL database"""
         try:
-            with self.db.get_connection() as conn:
-                rows = conn.execute('''
-                    SELECT room_no, room_type, room_status, guest_name, 
-                           check_in, check_out, notes, last_updated
-                    FROM rooms 
-                    ORDER BY room_no
-                ''').fetchall()
+            rows = self.db.get_all("""
+                SELECT room_no, room_type, room_status, guest_name, 
+                       check_in, check_out, notes, floor, last_updated, updated_by
+                FROM rooms 
+                ORDER BY room_no
+            """)
+            
+            rooms = []
+            for row in rows:
+                # Parse notes để lấy thông tin pax
+                notes = row['notes'] or ''
+                pax = 0
+                if 'Pax:' in notes:
+                    try:
+                        pax_str = notes.split('Pax:')[1].strip().split()[0]
+                        pax = int(pax_str)
+                    except:
+                        pax = 0
                 
-                rooms = []
-                for row in rows:
-                    # Parse notes để lấy thông tin pax (nếu có)
-                    notes = row['notes'] or ''
-                    pax = 0
-                    if 'Pax:' in notes:
-                        try:
-                            pax_str = notes.split('Pax:')[1].strip().split()[0]
-                            pax = int(pax_str)
-                        except:
-                            pax = 0
-                    
-                    rooms.append({
-                        'roomNo': row['room_no'],
-                        'roomType': row['room_type'],
-                        'roomStatus': row['room_status'],
-                        'currentGuest': {
-                            'name': row['guest_name'] or '',
-                            'checkIn': row['check_in'] or '',
-                            'checkOut': row['check_out'] or '',
-                            'pax': pax
-                        },
-                        'newGuest': {
-                            'name': '',
-                            'checkIn': '',
-                            'checkOut': '',
-                            'pax': 0
-                        }
-                    })
-                
-                return {'success': True, 'data': rooms}
-                
+                rooms.append({
+                    'roomNo': row['room_no'],
+                    'roomType': row['room_type'],
+                    'roomStatus': row['room_status'],
+                    'currentGuest': {
+                        'name': row['guest_name'] or '',
+                        'checkIn': row['check_in'] or '',
+                        'checkOut': row['check_out'] or '',
+                        'pax': pax
+                    },
+                    'newGuest': {
+                        'name': '',
+                        'checkIn': '',
+                        'checkOut': '',
+                        'pax': 0
+                    },
+                    'floor': row['floor'],
+                    'lastUpdated': row['last_updated'].isoformat() if row['last_updated'] else None,
+                    'updatedBy': row['updated_by']
+                })
+            
+            return {'success': True, 'data': rooms}
+            
         except Exception as e:
             logger.error(f"Lỗi get_all_rooms: {e}")
             return {'success': False, 'error': str(e)}
 
     def get_room_by_number(self, room_no):
-        """Lấy thông tin chi tiết một phòng"""
+        """Lấy thông tin chi tiết một phòng từ PostgreSQL"""
         try:
-            with self.db.get_connection() as conn:
-                row = conn.execute(
-                    'SELECT * FROM rooms WHERE room_no = ?', 
-                    (room_no,)
-                ).fetchone()
+            row = self.db.get_one(
+                "SELECT * FROM rooms WHERE room_no = %s", 
+                (room_no,)
+            )
+            
+            if row:
+                # Parse notes để lấy thông tin pax
+                notes = row['notes'] or ''
+                pax = 0
+                if 'Pax:' in notes:
+                    try:
+                        pax_str = notes.split('Pax:')[1].strip().split()[0]
+                        pax = int(pax_str)
+                    except:
+                        pax = 0
                 
-                if row:
-                    # Parse notes để lấy thông tin pax
-                    notes = row['notes'] or ''
-                    pax = 0
-                    if 'Pax:' in notes:
-                        try:
-                            pax_str = notes.split('Pax:')[1].strip().split()[0]
-                            pax = int(pax_str)
-                        except:
-                            pax = 0
-                    
-                    return {
-                        'roomNo': row['room_no'],
-                        'roomType': row['room_type'],
-                        'roomStatus': row['room_status'],
-                        'currentGuest': {
-                            'name': row['guest_name'] or '',
-                            'checkIn': row['check_in'] or '',
-                            'checkOut': row['check_out'] or '',
-                            'pax': pax
-                        },
-                        'newGuest': {
-                            'name': '',
-                            'checkIn': '',
-                            'checkOut': '',
-                            'pax': 0
-                        }
-                    }
-                return None
-                
+                return {
+                    'roomNo': row['room_no'],
+                    'roomType': row['room_type'],
+                    'roomStatus': row['room_status'],
+                    'currentGuest': {
+                        'name': row['guest_name'] or '',
+                        'checkIn': row['check_in'] or '',
+                        'checkOut': row['check_out'] or '',
+                        'pax': pax
+                    },
+                    'newGuest': {
+                        'name': '',
+                        'checkIn': '',
+                        'checkOut': '',
+                        'pax': 0
+                    },
+                    'floor': row['floor'],
+                    'lastUpdated': row['last_updated'].isoformat() if row['last_updated'] else None,
+                    'updatedBy': row['updated_by']
+                }
+            return None
+            
         except Exception as e:
             logger.error(f"Lỗi get_room_by_number {room_no}: {e}")
             return None
 
     def update_room_data(self, room_no, updated_data, user_info):
-        """Cập nhật thông tin phòng trong database"""
+        """Cập nhật thông tin phòng trong PostgreSQL database"""
         try:
-            with self.db.get_connection() as conn:
-                # Lấy thông tin phòng hiện tại
-                current_room = conn.execute(
-                    'SELECT * FROM rooms WHERE room_no = ?', 
-                    (room_no,)
-                ).fetchone()
+            # Lấy thông tin phòng hiện tại
+            current_room = self.db.get_one(
+                "SELECT * FROM rooms WHERE room_no = %s", 
+                (room_no,)
+            )
+            
+            if not current_room:
+                return False
+            
+            # Build dynamic update query
+            set_clause = []
+            params = {}
+            
+            # Thêm các trường cập nhật
+            if 'roomStatus' in updated_data:
+                set_clause.append("room_status = %(room_status)s")
+                params['room_status'] = updated_data['roomStatus']
+            
+            if 'currentGuest' in updated_data:
+                guest_data = updated_data['currentGuest']
+                set_clause.append("guest_name = %(guest_name)s")
+                params['guest_name'] = guest_data.get('name', '')
                 
-                if not current_room:
-                    return False
+                set_clause.append("check_in = %(check_in)s")
+                params['check_in'] = guest_data.get('checkIn', '')
                 
-                # Build dynamic update query
-                set_clause = []
-                params = []
+                set_clause.append("check_out = %(check_out)s")
+                params['check_out'] = guest_data.get('checkOut', '')
                 
-                # Xử lý các trường cập nhật
-                if 'roomStatus' in updated_data:
-                    set_clause.append('room_status = ?')
-                    params.append(updated_data['roomStatus'])
-                
-                if 'currentGuest' in updated_data:
-                    guest_data = updated_data['currentGuest']
-                    set_clause.append('guest_name = ?')
-                    params.append(guest_data.get('name', ''))
-                    
-                    set_clause.append('check_in = ?')
-                    params.append(guest_data.get('checkIn', ''))
-                    
-                    set_clause.append('check_out = ?')
-                    params.append(guest_data.get('checkOut', ''))
-                    
-                    # Lưu pax vào notes
-                    pax = guest_data.get('pax', 0)
-                    notes = f"Pax: {pax}" if pax else ''
-                    set_clause.append('notes = ?')
-                    params.append(notes)
-                
-                if 'roomType' in updated_data:
-                    set_clause.append('room_type = ?')
-                    params.append(updated_data['roomType'])
-                
-                if not set_clause:
-                    return False
-                
-                # Thêm room_no cho WHERE clause
-                params.append(room_no)
-                
-                query = f'''
-                    UPDATE rooms 
-                    SET {', '.join(set_clause)}, last_updated = CURRENT_TIMESTAMP
-                    WHERE room_no = ?
-                '''
-                
-                conn.execute(query, params)
-                conn.commit()
-                return True
-                
+                # Lưu pax vào notes
+                pax = guest_data.get('pax', 0)
+                notes = f"Pax: {pax}" if pax else ''
+                set_clause.append("notes = %(notes)s")
+                params['notes'] = notes
+            
+            if 'roomType' in updated_data:
+                set_clause.append("room_type = %(room_type)s")
+                params['room_type'] = updated_data['roomType']
+            
+            if not set_clause:
+                return False
+            
+            # Thêm các trường cố định
+            set_clause.append("last_updated = %(last_updated)s")
+            params['last_updated'] = datetime.now()
+            
+            set_clause.append("updated_by = %(updated_by)s")
+            params['updated_by'] = user_info
+            
+            # Thêm room_no cho WHERE clause
+            params['room_no'] = room_no
+            
+            query = f"""
+                UPDATE rooms 
+                SET {', '.join(set_clause)}
+                WHERE room_no = %(room_no)s
+            """
+            
+            row_count = self.db.execute_update(query, params)
+            return row_count > 0
+            
         except Exception as e:
             logger.error(f"Lỗi update_room_data {room_no}: {e}")
             return False
 
     def get_statistics(self):
-        """Thống kê trạng thái phòng từ database"""
+        """Thống kê trạng thái phòng từ PostgreSQL database"""
         try:
-            with self.db.get_connection() as conn:
-                stats = conn.execute('''
-                    SELECT room_status, COUNT(*) as count 
-                    FROM rooms 
-                    GROUP BY room_status
-                ''').fetchall()
-                
-                statistics = {}
-                for row in stats:
-                    statistics[row['room_status']] = row['count']
-                
-                return statistics
-                
+            stats = self.db.get_all("""
+                SELECT room_status, COUNT(*) as count 
+                FROM rooms 
+                GROUP BY room_status
+            """)
+            
+            statistics = {}
+            for row in stats:
+                statistics[row['room_status']] = row['count']
+            
+            return statistics
+            
         except Exception as e:
             logger.error(f"Lỗi get_statistics: {e}")
             return {}
 
     def get_rooms_by_floor(self):
-        """Nhóm phòng theo tầng"""
+        """Nhóm phòng theo tầng từ PostgreSQL"""
         try:
-            with self.db.get_connection() as conn:
-                rows = conn.execute('''
-                    SELECT * FROM rooms ORDER BY room_no
-                ''').fetchall()
+            rows = self.db.get_all("""
+                SELECT * FROM rooms ORDER BY room_no
+            """)
+            
+            floors = {}
+            for row in rows:
+                room_no = row['room_no']
+                floor = str(room_no[0]) if room_no and room_no[0].isdigit() else '0'
                 
-                floors = {}
-                for row in rows:
-                    room_data = dict(row)
-                    floor = room_data['room_no'][0] if room_data['room_no'] else '0'
-                    
-                    if floor not in floors:
-                        floors[floor] = []
-                    
-                    # Parse notes để lấy pax
-                    notes = room_data['notes'] or ''
-                    pax = 0
-                    if 'Pax:' in notes:
-                        try:
-                            pax_str = notes.split('Pax:')[1].strip().split()[0]
-                            pax = int(pax_str)
-                        except:
-                            pax = 0
-                    
-                    floors[floor].append({
-                        'roomNo': room_data['room_no'],
-                        'roomType': room_data['room_type'],
-                        'roomStatus': room_data['room_status'],
-                        'currentGuest': {
-                            'name': room_data['guest_name'] or '',
-                            'checkIn': room_data['check_in'] or '',
-                            'checkOut': room_data['check_out'] or '',
-                            'pax': pax
-                        },
-                        'newGuest': {
-                            'name': '',
-                            'checkIn': '',
-                            'checkOut': '',
-                            'pax': 0
-                        }
-                    })
+                if floor not in floors:
+                    floors[floor] = []
                 
-                return floors
+                # Parse notes để lấy pax
+                notes = row['notes'] or ''
+                pax = 0
+                if 'Pax:' in notes:
+                    try:
+                        pax_str = notes.split('Pax:')[1].strip().split()[0]
+                        pax = int(pax_str)
+                    except:
+                        pax = 0
                 
+                floors[floor].append({
+                    'roomNo': room_no,
+                    'roomType': row['room_type'],
+                    'roomStatus': row['room_status'],
+                    'currentGuest': {
+                        'name': row['guest_name'] or '',
+                        'checkIn': row['check_in'] or '',
+                        'checkOut': row['check_out'] or '',
+                        'pax': pax
+                    },
+                    'newGuest': {
+                        'name': '',
+                        'checkIn': '',
+                        'checkOut': '',
+                        'pax': 0
+                    },
+                    'floor': row['floor'],
+                    'lastUpdated': row['last_updated'].isoformat() if row['last_updated'] else None,
+                    'updatedBy': row['updated_by']
+                })
+            
+            return floors
+            
         except Exception as e:
             logger.error(f"Lỗi get_rooms_by_floor: {e}")
             return {}
 
     def get_room_info(self):
-        """Lấy thông tin file/data từ database"""
+        """Lấy thông tin file/data từ PostgreSQL database"""
         try:
-            with self.db.get_connection() as conn:
-                # Lấy thông tin sync cuối cùng
-                last_sync = conn.execute('''
-                    SELECT sync_time, synced_by, total_rooms 
-                    FROM sync_history 
-                    WHERE success = 1 
-                    ORDER BY sync_time DESC 
-                    LIMIT 1
-                ''').fetchone()
+            # Lấy thông tin sync cuối cùng từ file_info
+            last_sync = self.db.get_one("""
+                SELECT last_sync, sync_by, total_rows 
+                FROM file_info 
+                ORDER BY last_sync DESC 
+                LIMIT 1
+            """)
+            
+            # Lấy tổng số phòng hiện tại
+            total_result = self.db.get_one("SELECT COUNT(*) as count FROM rooms")
+            total_rooms = total_result['count'] if total_result else 0
+            
+            if last_sync:
+                return {
+                    'last_updated': last_sync['last_sync'].isoformat() if last_sync['last_sync'] else None,
+                    'last_updated_by': last_sync['sync_by'],
+                    'total_rooms': total_rooms,
+                    'last_sync_rooms': last_sync['total_rows']
+                }
+            else:
+                return {
+                    'last_updated': None,
+                    'last_updated_by': None,
+                    'total_rooms': total_rooms
+                }
                 
-                # Lấy tổng số phòng hiện tại
-                total_rooms = conn.execute('SELECT COUNT(*) as count FROM rooms').fetchone()[0]
-                
-                if last_sync:
-                    return {
-                        'last_updated': last_sync['sync_time'],
-                        'last_updated_by': last_sync['synced_by'],
-                        'total_rooms': total_rooms,
-                        'last_sync_rooms': last_sync['total_rooms']
-                    }
-                else:
-                    return {
-                        'last_updated': None,
-                        'last_updated_by': None,
-                        'total_rooms': total_rooms
-                    }
-                    
         except Exception as e:
             logger.error(f"Lỗi get_room_info: {e}")
-            return {}
+            return {
+                'last_updated': None,
+                'last_updated_by': None,
+                'total_rooms': 0
+            }
+
+    def search_rooms(self, search_term):
+        """Tìm kiếm phòng theo số phòng, tên khách, hoặc trạng thái"""
+        try:
+            search_pattern = f"%{search_term}%"
+            rows = self.db.get_all("""
+                SELECT * FROM rooms 
+                WHERE room_no ILIKE %s 
+                   OR guest_name ILIKE %s 
+                   OR room_status ILIKE %s
+                ORDER BY room_no
+            """, (search_pattern, search_pattern, search_pattern))
+            
+            rooms = []
+            for row in rows:
+                notes = row['notes'] or ''
+                pax = 0
+                if 'Pax:' in notes:
+                    try:
+                        pax_str = notes.split('Pax:')[1].strip().split()[0]
+                        pax = int(pax_str)
+                    except:
+                        pax = 0
+                
+                rooms.append({
+                    'roomNo': row['room_no'],
+                    'roomType': row['room_type'],
+                    'roomStatus': row['room_status'],
+                    'currentGuest': {
+                        'name': row['guest_name'] or '',
+                        'checkIn': row['check_in'] or '',
+                        'checkOut': row['check_out'] or '',
+                        'pax': pax
+                    },
+                    'newGuest': {
+                        'name': '',
+                        'checkIn': '',
+                        'checkOut': '',
+                        'pax': 0
+                    },
+                    'floor': row['floor'],
+                    'lastUpdated': row['last_updated'].isoformat() if row['last_updated'] else None,
+                    'updatedBy': row['updated_by']
+                })
+            
+            return {'success': True, 'data': rooms, 'total': len(rooms)}
+            
+        except Exception as e:
+            logger.error(f"Lỗi search_rooms: {e}")
+            return {'success': False, 'error': str(e), 'data': [], 'total': 0}
+
+    def get_rooms_by_status(self, status):
+        """Lấy danh sách phòng theo trạng thái cụ thể"""
+        try:
+            rows = self.db.get_all("""
+                SELECT * FROM rooms 
+                WHERE room_status = %s 
+                ORDER BY room_no
+            """, (status,))
+            
+            rooms = []
+            for row in rows:
+                notes = row['notes'] or ''
+                pax = 0
+                if 'Pax:' in notes:
+                    try:
+                        pax_str = notes.split('Pax:')[1].strip().split()[0]
+                        pax = int(pax_str)
+                    except:
+                        pax = 0
+                
+                rooms.append({
+                    'roomNo': row['room_no'],
+                    'roomType': row['room_type'],
+                    'roomStatus': row['room_status'],
+                    'currentGuest': {
+                        'name': row['guest_name'] or '',
+                        'checkIn': row['check_in'] or '',
+                        'checkOut': row['check_out'] or '',
+                        'pax': pax
+                    },
+                    'newGuest': {
+                        'name': '',
+                        'checkIn': '',
+                        'checkOut': '',
+                        'pax': 0
+                    },
+                    'floor': row['floor'],
+                    'lastUpdated': row['last_updated'].isoformat() if row['last_updated'] else None,
+                    'updatedBy': row['updated_by']
+                })
+            
+            return {'success': True, 'data': rooms, 'total': len(rooms)}
+            
+        except Exception as e:
+            logger.error(f"Lỗi get_rooms_by_status: {e}")
+            return {'success': False, 'error': str(e), 'data': [], 'total': 0}
 
     # ==================== COMPATIBILITY METHODS ====================
 
