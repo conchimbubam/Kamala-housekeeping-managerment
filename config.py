@@ -10,7 +10,7 @@ class Config:
     # Sử dụng thông tin bạn cung cấp
     DB_HOST = 'dpg-d4hu220gjchc73dh9ogg-a'  # Host từ Render
     DB_PORT = '5432'  # Port mặc định PostgreSQL
-    DB_NAME = 'hotel_management'  # Tên database (có thể cần điều chỉnh)
+    DB_NAME = 'hotel_management_zga5'  # Tên database (có thể cần điều chỉnh)
     DB_USER = 'hotel_user'  # Username (có thể cần điều chỉnh)
     DB_PASSWORD = 'h2348SIpwIDUk0Uv7xNu4VRATOJNHYzb'  # Password từ Render
     
