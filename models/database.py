@@ -1,315 +1,412 @@
 # models/database.py
 import psycopg2
-from psycopg2.extras import RealDictCursor
 import logging
-from datetime import datetime
 from contextlib import contextmanager
+import os
+from urllib.parse import urlparse
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
 class DatabaseManager:
-    """Quản lý kết nối và thao tác với PostgreSQL database trên Render"""
+    def __init__(self, db_url=None):
+        """
+        Khởi tạo PostgreSQL Database Manager
+        
+        Args:
+            db_url: PostgreSQL connection string (DATABASE_URL từ environment variable)
+                   Hoặc có thể là None để sử dụng giá trị từ config
+        """
+        # Sử dụng DATABASE_URL từ tham số hoặc environment variable
+        self.db_url = db_url or os.getenv('DATABASE_URL')
+        
+        if not self.db_url:
+            # Nếu không có db_url, thử import config để lấy thông tin
+            try:
+                from config import Config
+                self.db_url = Config.DATABASE_URL
+                logger.info("✅ Sử dụng DATABASE_URL từ Config")
+            except ImportError:
+                logger.error("❌ Không thể import Config và không có DATABASE_URL")
+                raise ValueError("DATABASE_URL là bắt buộc")
+        
+        if not self.db_url:
+            raise ValueError("DATABASE_URL là bắt buộc. Kiểm tra config.py hoặc environment variables.")
+        
+        logger.info(f"🔗 Database URL: {self._mask_db_url(self.db_url)}")
+        self.init_database()
     
-    def __init__(self, db_host, db_port, db_name, db_user, db_password):
-        self.db_config = {
-            'host': db_host,
-            'port': db_port,
-            'database': db_name,
-            'user': db_user,
-            'password': db_password
-        }
-        self._initialize_database()
-    
-    def _get_connection(self):
-        """Tạo kết nối mới đến PostgreSQL database"""
+    def _mask_db_url(self, db_url):
+        """Ẩn password trong database URL để log an toàn"""
+        if not db_url:
+            return "None"
         try:
-            conn = psycopg2.connect(
-                **self.db_config,
-                cursor_factory=RealDictCursor,
-                connect_timeout=10
-            )
-            logger.info(f"✅ Kết nối PostgreSQL thành công: {self.db_config['host']}")
-            return conn
-        except Exception as e:
-            logger.error(f"❌ Lỗi kết nối PostgreSQL: {e}")
-            logger.error(f"📌 Connection details: host={self.db_config['host']}, db={self.db_config['database']}, user={self.db_config['user']}")
-            raise
+            # Mask password trong connection string
+            parsed = urlparse(db_url)
+            if parsed.password:
+                masked_url = db_url.replace(parsed.password, "***" + parsed.password[-4:])
+                return masked_url
+            return db_url
+        except:
+            return "***masked***"
     
-    @contextmanager
-    def get_connection(self):
-        """Context manager để quản lý kết nối database"""
-        conn = None
+    def get_connection_params(self):
+        """Trích xuất thông tin kết nối từ URL"""
         try:
-            conn = self._get_connection()
-            yield conn
-            conn.commit()
-        except Exception as e:
-            if conn:
-                conn.rollback()
-            logger.error(f"❌ Lỗi database transaction: {e}")
-            raise
-        finally:
-            if conn:
-                conn.close()
-    
-    @contextmanager
-    def get_cursor(self, dict_cursor=True):
-        """Context manager để quản lý cursor"""
-        conn = None
-        cursor = None
-        try:
-            conn = self._get_connection()
-            if dict_cursor:
-                cursor = conn.cursor(cursor_factory=RealDictCursor)
+            parsed_url = urlparse(self.db_url)
+            
+            params = {
+                'host': parsed_url.hostname,
+                'database': parsed_url.path[1:],  # Bỏ qua '/' đầu tiên
+                'user': parsed_url.username,
+                'password': parsed_url.password,
+            }
+            
+            # Thêm port nếu có
+            if parsed_url.port:
+                params['port'] = parsed_url.port
             else:
-                cursor = conn.cursor()
-            yield cursor
-            conn.commit()
+                params['port'] = 5432  # PostgreSQL default port
+            
+            # Thêm SSL mode cho production (Render PostgreSQL)
+            if parsed_url.hostname and ('render.com' in parsed_url.hostname or 'amazonaws.com' in parsed_url.hostname):
+                params['sslmode'] = 'require'
+            
+            return params
         except Exception as e:
-            if conn:
-                conn.rollback()
-            logger.error(f"❌ Lỗi database cursor: {e}")
-            raise
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
+            logger.error(f"❌ Lỗi parse database URL: {e}")
+            raise ValueError(f"Database URL không hợp lệ: {e}")
     
-    def _initialize_database(self):
-        """Khởi tạo database và các bảng nếu chưa tồn tại"""
-        try:
-            with self.get_connection() as conn:
-                with conn.cursor() as cursor:
-                    # Tạo bảng rooms
-                    cursor.execute("""
-                        CREATE TABLE IF NOT EXISTS rooms (
-                            id SERIAL PRIMARY KEY,
-                            room_no VARCHAR(10) UNIQUE NOT NULL,
-                            room_type VARCHAR(50),
-                            room_status VARCHAR(20) DEFAULT 'vd',
-                            guest_name TEXT,
-                            check_in DATE,
-                            check_out DATE,
-                            notes TEXT,
-                            floor INTEGER DEFAULT 1,
-                            last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            updated_by VARCHAR(100),
-                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                        )
-                    """)
+    def init_database(self):
+        """Khởi tạo database với schema hoàn chỉnh cho PostgreSQL"""
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                with self.get_connection() as conn:
+                    with conn.cursor() as cur:
+                        # Bảng rooms - thay thế rooms.json
+                        cur.execute('''
+                            CREATE TABLE IF NOT EXISTS rooms (
+                                room_no VARCHAR(10) PRIMARY KEY,
+                                room_type VARCHAR(50) NOT NULL,
+                                room_status VARCHAR(20) NOT NULL DEFAULT 'vc',
+                                guest_name TEXT DEFAULT '',
+                                check_in VARCHAR(20) DEFAULT '',
+                                check_out VARCHAR(20) DEFAULT '',
+                                notes TEXT DEFAULT '',
+                                last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            )
+                        ''')
+                        
+                        # Bảng activity_logs - thay thế hk_activity_log.json
+                        cur.execute('''
+                            CREATE TABLE IF NOT EXISTS activity_logs (
+                                id SERIAL PRIMARY KEY,
+                                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                user_name VARCHAR(100) NOT NULL,
+                                user_department VARCHAR(20) NOT NULL,
+                                room_no VARCHAR(10) NOT NULL,
+                                action_type VARCHAR(50) NOT NULL,
+                                old_status VARCHAR(20),
+                                new_status VARCHAR(20),
+                                action_detail TEXT,
+                                ip_address VARCHAR(45)
+                            )
+                        ''')
+                        
+                        # Bảng sync_history - theo dõi đồng bộ Google Sheets
+                        cur.execute('''
+                            CREATE TABLE IF NOT EXISTS sync_history (
+                                id SERIAL PRIMARY KEY,
+                                sync_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                synced_by VARCHAR(100) NOT NULL,
+                                total_rooms INTEGER,
+                                success BOOLEAN DEFAULT TRUE,
+                                error_message TEXT
+                            )
+                        ''')
+                        
+                        # Tạo indexes cho hiệu suất
+                        cur.execute('''
+                            CREATE INDEX IF NOT EXISTS idx_rooms_status 
+                            ON rooms(room_status)
+                        ''')
+                        cur.execute('''
+                            CREATE INDEX IF NOT EXISTS idx_activity_timestamp 
+                            ON activity_logs(timestamp)
+                        ''')
+                        cur.execute('''
+                            CREATE INDEX IF NOT EXISTS idx_activity_room 
+                            ON activity_logs(room_no)
+                        ''')
+                        cur.execute('''
+                            CREATE INDEX IF NOT EXISTS idx_activity_user 
+                            ON activity_logs(user_name)
+                        ''')
+                        
+                        # Tạo composite index cho tìm kiếm hiệu quả
+                        cur.execute('''
+                            CREATE INDEX IF NOT EXISTS idx_activity_room_timestamp 
+                            ON activity_logs(room_no, timestamp DESC)
+                        ''')
                     
-                    # Tạo bảng hk_logs cho House Keeping
-                    cursor.execute("""
-                        CREATE TABLE IF NOT EXISTS hk_logs (
-                            id SERIAL PRIMARY KEY,
-                            room_no VARCHAR(10) NOT NULL,
-                            old_status VARCHAR(20),
-                            new_status VARCHAR(20),
-                            changed_by VARCHAR(100),
-                            department VARCHAR(10),
-                            change_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            notes TEXT
-                        )
-                    """)
+                    conn.commit()
+                    logger.info("✅ PostgreSQL database schema đã được khởi tạo")
+                    break
                     
-                    # Tạo bảng file_info để lưu thông tin file Google Sheets
-                    cursor.execute("""
-                        CREATE TABLE IF NOT EXISTS file_info (
-                            id SERIAL PRIMARY KEY,
-                            file_name VARCHAR(255),
-                            last_modified TIMESTAMP,
-                            total_rows INTEGER,
-                            last_sync TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            sync_by VARCHAR(100)
-                        )
-                    """)
-                    
-                    # Tạo indexes để tối ưu hiệu suất
-                    cursor.execute("CREATE INDEX IF NOT EXISTS idx_rooms_room_no ON rooms(room_no)")
-                    cursor.execute("CREATE INDEX IF NOT EXISTS idx_rooms_status ON rooms(room_status)")
-                    cursor.execute("CREATE INDEX IF NOT EXISTS idx_rooms_floor ON rooms(floor)")
-                    cursor.execute("CREATE INDEX IF NOT EXISTS idx_hk_logs_room_no ON hk_logs(room_no)")
-                    cursor.execute("CREATE INDEX IF NOT EXISTS idx_hk_logs_time ON hk_logs(change_time)")
-                    
-                    logger.info("✅ Đã khởi tạo PostgreSQL database và các bảng")
-                    
-        except Exception as e:
-            logger.error(f"❌ Lỗi khởi tạo database: {e}")
-            raise
-    
-    def execute_query(self, query, params=None, fetch=True):
-        """Thực thi query và trả về kết quả"""
-        try:
-            with self.get_cursor() as cursor:
-                cursor.execute(query, params or ())
-                if fetch and cursor.description:
-                    return cursor.fetchall()
-                return None
-        except Exception as e:
-            logger.error(f"❌ Lỗi execute query: {e}")
-            logger.error(f"📌 Query: {query}")
-            logger.error(f"📌 Params: {params}")
-            raise
-    
-    def execute_insert(self, query, params=None, return_id=True):
-        """Thực thi INSERT query và trả về ID nếu cần"""
-        try:
-            with self.get_cursor() as cursor:
-                cursor.execute(query, params or ())
-                if return_id and cursor.description:
-                    result = cursor.fetchone()
-                    return result['id'] if result else None
-                return None
-        except Exception as e:
-            logger.error(f"❌ Lỗi execute insert: {e}")
-            raise
-    
-    def execute_update(self, query, params=None):
-        """Thực thi UPDATE query"""
-        try:
-            with self.get_cursor() as cursor:
-                cursor.execute(query, params or ())
-                return cursor.rowcount
-        except Exception as e:
-            logger.error(f"❌ Lỗi execute update: {e}")
-            raise
-    
-    def execute_delete(self, query, params=None):
-        """Thực thi DELETE query"""
-        try:
-            with self.get_cursor() as cursor:
-                cursor.execute(query, params or ())
-                return cursor.rowcount
-        except Exception as e:
-            logger.error(f"❌ Lỗi execute delete: {e}")
-            raise
-    
-    def get_one(self, query, params=None):
-        """Lấy một bản ghi duy nhất"""
-        try:
-            with self.get_cursor() as cursor:
-                cursor.execute(query, params or ())
-                return cursor.fetchone()
-        except Exception as e:
-            logger.error(f"❌ Lỗi get one: {e}")
-            raise
-    
-    def get_all(self, query, params=None):
-        """Lấy tất cả bản ghi"""
-        try:
-            with self.get_cursor() as cursor:
-                cursor.execute(query, params or ())
-                return cursor.fetchall()
-        except Exception as e:
-            logger.error(f"❌ Lỗi get all: {e}")
-            raise
-    
-    def table_exists(self, table_name):
-        """Kiểm tra xem bảng có tồn tại không"""
-        try:
-            query = """
-                SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
-                    WHERE table_schema = 'public' 
-                    AND table_name = %s
-                )
-            """
-            result = self.get_one(query, (table_name,))
-            return result['exists'] if result else False
-        except Exception as e:
-            logger.error(f"❌ Lỗi kiểm tra bảng: {e}")
-            return False
-    
+            except Exception as e:
+                logger.error(f"❌ Lỗi khởi tạo PostgreSQL database (lần {attempt + 1}): {e}")
+                if attempt == max_retries - 1:
+                    logger.error("❌ Không thể khởi tạo database sau nhiều lần thử")
+                    raise
+                import time
+                time.sleep(2)  # Chờ 2 giây trước khi thử lại
+
     def is_database_empty(self):
         """Kiểm tra database có dữ liệu không"""
         try:
-            # Kiểm tra xem bảng rooms có dữ liệu không
-            query = "SELECT COUNT(*) as count FROM rooms"
-            result = self.get_one(query)
-            return result['count'] == 0 if result else True
+            with self.get_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute('SELECT COUNT(*) as count FROM rooms')
+                    result = cur.fetchone()
+                    return result[0] == 0
         except Exception as e:
-            logger.error(f"❌ Lỗi kiểm tra database empty: {e}")
+            logger.error(f"❌ Lỗi kiểm tra database: {e}")
             return True
-    
-    def upsert_room(self, room_data):
-        """Insert hoặc update phòng nếu đã tồn tại"""
+
+    @contextmanager 
+    def get_connection(self):
+        """
+        Context manager cho PostgreSQL connection
+        
+        Usage:
+            with db_manager.get_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT * FROM rooms")
+                    result = cur.fetchall()
+        """
+        conn = None
         try:
-            query = """
-                INSERT INTO rooms (room_no, room_type, room_status, guest_name, check_in, check_out, notes, floor, last_updated, updated_by)
-                VALUES (%(room_no)s, %(room_type)s, %(room_status)s, %(guest_name)s, %(check_in)s, %(check_out)s, %(notes)s, %(floor)s, %(last_updated)s, %(updated_by)s)
-                ON CONFLICT (room_no) 
-                DO UPDATE SET
-                    room_type = EXCLUDED.room_type,
-                    room_status = EXCLUDED.room_status,
-                    guest_name = EXCLUDED.guest_name,
-                    check_in = EXCLUDED.check_in,
-                    check_out = EXCLUDED.check_out,
-                    notes = EXCLUDED.notes,
-                    floor = EXCLUDED.floor,
-                    last_updated = EXCLUDED.last_updated,
-                    updated_by = EXCLUDED.updated_by
-            """
-            return self.execute_update(query, room_data)
-        except Exception as e:
-            logger.error(f"❌ Lỗi upsert room: {e}")
+            conn = psycopg2.connect(**self.get_connection_params())
+            conn.autocommit = False
+            yield conn
+        except psycopg2.OperationalError as e:
+            logger.error(f"❌ Lỗi kết nối PostgreSQL: {e}")
+            raise ConnectionError(f"Không thể kết nối đến database: {e}")
+        except psycopg2.Error as e:
+            if conn:
+                conn.rollback()
+            logger.error(f"❌ PostgreSQL error: {e}")
             raise
-    
-    def get_database_stats(self):
-        """Lấy thống kê database"""
-        try:
-            stats = {}
-            
-            # Số lượng bản ghi trong mỗi bảng
-            tables = ['rooms', 'hk_logs', 'file_info']
-            for table in tables:
-                query = f"SELECT COUNT(*) as count FROM {table}"
-                result = self.get_one(query)
-                stats[f'{table}_count'] = result['count'] if result else 0
-            
-            # Kích thước database
-            query = """
-                SELECT 
-                    pg_size_pretty(pg_database_size(current_database())) as db_size,
-                    pg_database_size(current_database()) as db_size_bytes
-            """
-            result = self.get_one(query)
-            if result:
-                stats['database_size'] = result['db_size']
-                stats['database_size_bytes'] = result['db_size_bytes']
-            
-            return stats
-            
         except Exception as e:
-            logger.error(f"❌ Lỗi lấy database stats: {e}")
-            return {}
-    
+            if conn:
+                conn.rollback()
+            logger.error(f"❌ Unexpected error: {e}")
+            raise
+        finally:
+            if conn:
+                conn.close()
+
     def test_connection(self):
-        """Kiểm tra kết nối database"""
+        """Test kết nối PostgreSQL database"""
         try:
             with self.get_connection() as conn:
-                with conn.cursor() as cursor:
-                    cursor.execute("SELECT 1 as test, version() as version")
-                    result = cursor.fetchone()
-                    logger.info(f"✅ Database connection test: {result['test']}")
-                    logger.info(f"📊 Database version: {result['version']}")
-                    return result['test'] == 1 if result else False
+                with conn.cursor() as cur:
+                    cur.execute("SELECT version(), NOW() as current_time")
+                    result = cur.fetchone()
+                    version, current_time = result
+                    
+                    # Kiểm tra số lượng bảng
+                    cur.execute('''
+                        SELECT COUNT(*) 
+                        FROM information_schema.tables 
+                        WHERE table_schema = 'public'
+                    ''')
+                    table_count = cur.fetchone()[0]
+                    
+                    logger.info(f"✅ Kết nối PostgreSQL thành công")
+                    logger.info(f"📊 Database Version: {version.split(',')[0]}")
+                    logger.info(f"🕒 Server Time: {current_time}")
+                    logger.info(f"🗃️  Table Count: {table_count}")
+                    
+                    return {
+                        'status': 'connected',
+                        'version': version,
+                        'server_time': current_time,
+                        'table_count': table_count
+                    }
         except Exception as e:
-            logger.error(f"❌ Lỗi test connection: {e}")
-            return False
-    
-    def close_all_connections(self):
-        """Đóng tất cả kết nối (chủ yếu cho cleanup)"""
-        logger.info("✅ Database connection pool closed")
+            logger.error(f"❌ Lỗi kết nối PostgreSQL: {e}")
+            return {
+                'status': 'disconnected',
+                'error': str(e)
+            }
+
+    def get_database_info(self):
+        """Lấy thông tin chi tiết về database"""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cur:
+                    # Thông tin tổng quan
+                    cur.execute('''
+                        SELECT 
+                            (SELECT COUNT(*) FROM rooms) as room_count,
+                            (SELECT COUNT(*) FROM activity_logs) as log_count,
+                            (SELECT COUNT(*) FROM sync_history) as sync_count,
+                            (SELECT MAX(timestamp) FROM activity_logs) as latest_activity,
+                            (SELECT MAX(sync_time) FROM sync_history) as latest_sync
+                    ''')
+                    info = cur.fetchone()
+                    
+                    # Thống kê trạng thái phòng
+                    cur.execute('''
+                        SELECT room_status, COUNT(*) as count
+                        FROM rooms 
+                        GROUP BY room_status 
+                        ORDER BY count DESC
+                    ''')
+                    status_stats = cur.fetchall()
+                    
+                    return {
+                        'room_count': info[0],
+                        'log_count': info[1],
+                        'sync_count': info[2],
+                        'latest_activity': info[3],
+                        'latest_sync': info[4],
+                        'status_stats': dict(status_stats)
+                    }
+                    
+        except Exception as e:
+            logger.error(f"❌ Lỗi lấy thông tin database: {e}")
+            return {}
+
+    def execute_query(self, query, params=None, return_result=True):
+        """
+        Thực thi query một cách an toàn
+        
+        Args:
+            query: SQL query string
+            params: Parameters cho query
+            return_result: Có trả về kết quả không
+            
+        Returns:
+            List of dicts nếu return_result=True, None nếu không
+        """
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(query, params)
+                    
+                    if return_result and cur.description:
+                        columns = [desc[0] for desc in cur.description]
+                        rows = cur.fetchall()
+                        return [dict(zip(columns, row)) for row in rows]
+                    else:
+                        conn.commit()
+                        return None
+                        
+        except Exception as e:
+            logger.error(f"❌ Lỗi thực thi query: {e}")
+            logger.error(f"Query: {query}")
+            logger.error(f"Params: {params}")
+            raise
+
+    def health_check(self):
+        """Health check chi tiết cho database"""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cur:
+                    # Kiểm tra connection cơ bản
+                    cur.execute("SELECT 1 as test")
+                    basic_test = cur.fetchone()[0]
+                    
+                    # Kiểm tra các bảng quan trọng
+                    cur.execute('''
+                        SELECT table_name 
+                        FROM information_schema.tables 
+                        WHERE table_schema = 'public' 
+                        AND table_name IN ('rooms', 'activity_logs', 'sync_history')
+                    ''')
+                    required_tables = {row[0] for row in cur.fetchall()}
+                    
+                    # Kiểm tra số lượng bản ghi
+                    cur.execute("SELECT COUNT(*) FROM rooms")
+                    room_count = cur.fetchone()[0]
+                    
+                    cur.execute("SELECT COUNT(*) FROM activity_logs")
+                    log_count = cur.fetchone()[0]
+                    
+                    health_status = {
+                        'status': 'healthy' if basic_test == 1 else 'unhealthy',
+                        'database': 'PostgreSQL',
+                        'required_tables': list(required_tables),
+                        'missing_tables': ['rooms', 'activity_logs', 'sync_history'] - required_tables,
+                        'room_count': room_count,
+                        'log_count': log_count,
+                        'timestamp': datetime.now().isoformat()
+                    }
+                    
+                    if health_status['missing_tables']:
+                        health_status['status'] = 'degraded'
+                        logger.warning(f"⚠️ Missing tables: {health_status['missing_tables']}")
+                    
+                    return health_status
+                    
+        except Exception as e:
+            logger.error(f"❌ Database health check failed: {e}")
+            return {
+                'status': 'unhealthy',
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
+            }
+
+    def cleanup_old_logs(self, days_to_keep=30):
+        """
+        Dọn dẹp logs cũ để giữ database gọn gàng
+        
+        Args:
+            days_to_keep: Số ngày giữ lại logs
+        """
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute('''
+                        DELETE FROM activity_logs 
+                        WHERE timestamp < CURRENT_DATE - INTERVAL '%s days'
+                    ''', (days_to_keep,))
+                    
+                    deleted_count = cur.rowcount
+                    conn.commit()
+                    
+                    logger.info(f"✅ Đã xóa {deleted_count} logs cũ (trước {days_to_keep} ngày)")
+                    return deleted_count
+                    
+        except Exception as e:
+            logger.error(f"❌ Lỗi cleanup logs: {e}")
+            return 0
 
 
-# Utility functions cho ứng dụng
-def create_database_manager_from_config(config):
-    """Tạo DatabaseManager từ config object"""
-    return DatabaseManager(
-        db_host=config.DB_HOST,
-        db_port=config.DB_PORT,
-        db_name=config.DB_NAME,
-        db_user=config.DB_USER,
-        db_password=config.DB_PASSWORD
-    )
+# Helper function để tạo database manager instance
+def create_db_manager():
+    """Factory function để tạo DatabaseManager instance"""
+    return DatabaseManager()
+
+
+if __name__ == '__main__':
+    # Test database connection
+    try:
+        db = DatabaseManager()
+        result = db.test_connection()
+        
+        if result['status'] == 'connected':
+            print("🎉 PostgreSQL Database Manager đã sẵn sàng!")
+            print(f"📊 Database Info:")
+            info = db.get_database_info()
+            print(f"   • Rooms: {info.get('room_count', 0)}")
+            print(f"   • Activity Logs: {info.get('log_count', 0)}")
+            print(f"   • Status Stats: {info.get('status_stats', {})}")
+        else:
+            print(f"❌ Lỗi kết nối database: {result.get('error')}")
+    except Exception as e:
+        print(f"❌ Lỗi khởi tạo DatabaseManager: {e}")
