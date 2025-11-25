@@ -7,8 +7,7 @@ import logging
 from datetime import datetime, timedelta
 from functools import wraps
 import os
-import json
-from pathlib import Path
+import threading
 
 # Cấu hình logging
 logging.basicConfig(level=logging.INFO)
@@ -20,14 +19,8 @@ def create_app():
     app.config.from_object(Config)
     app.config['SECRET_KEY'] = Config.SECRET_KEY
     
-    # Khởi tạo database manager
-    db_manager = DatabaseManager(
-        db_host=Config.DB_HOST,
-        db_port=Config.DB_PORT,
-        db_name=Config.DB_NAME,
-        db_user=Config.DB_USER,
-        db_password=Config.DB_PASSWORD
-    )
+    # Khởi tạo database manager với PostgreSQL
+    db_manager = DatabaseManager()
     
     # Khởi tạo data processor với database
     data_processor = DataProcessor(
@@ -44,168 +37,6 @@ def create_app():
     app.db_manager = db_manager
     app.data_processor = data_processor
     app.hk_logger = hk_logger
-
-    # ==================== BACKUP SYSTEM (EVENT-BASED) ====================
-
-    def create_backup():
-        """Tạo bản sao lưu database - CHỈ GIỮ 5 BẢN GẦN NHẤT"""
-        try:
-            # Trên Render, không hỗ trợ backup bằng lệnh, nên chúng ta sẽ export dữ liệu dưới dạng JSON
-            backup_dir = Path("backups")
-            backup_dir.mkdir(exist_ok=True)
-            
-            # Tạo tên file backup với timestamp
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_file = backup_dir / f"hotel_backup_{timestamp}.json"
-            
-            # Lấy toàn bộ dữ liệu từ các bảng
-            backup_data = {}
-            
-            # Backup bảng rooms
-            rooms = app.data_processor.get_all_rooms()
-            if rooms['success']:
-                backup_data['rooms'] = rooms['data']
-            else:
-                logger.error("Không thể lấy dữ liệu rooms để backup")
-                
-            # Backup bảng hk_logs
-            try:
-                with app.db_manager.get_connection() as conn:
-                    with conn.cursor() as cursor:
-                        cursor.execute("SELECT * FROM hk_logs")
-                        backup_data['hk_logs'] = cursor.fetchall()
-            except Exception as e:
-                logger.error(f"Lỗi khi backup hk_logs: {e}")
-                
-            # Backup bảng file_info
-            try:
-                with app.db_manager.get_connection() as conn:
-                    with conn.cursor() as cursor:
-                        cursor.execute("SELECT * FROM file_info")
-                        backup_data['file_info'] = cursor.fetchall()
-            except Exception as e:
-                logger.error(f"Lỗi khi backup file_info: {e}")
-            
-            # Ghi dữ liệu vào file JSON
-            with open(backup_file, 'w', encoding='utf-8') as f:
-                json.dump(backup_data, f, ensure_ascii=False, indent=2, default=str)
-            
-            # CHỈ GIỮ LẠI 5 BACKUP GẦN NHẤT
-            cleanup_old_backups(backup_dir, keep_count=5)
-            
-            logger.info(f"✅ Đã tạo backup: {backup_file}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"❌ Lỗi tạo backup: {e}")
-            return False
-
-    def cleanup_old_backups(backup_dir, keep_count=5):
-        """Xóa các bản backup cũ, chỉ giữ lại `keep_count` bản mới nhất"""
-        try:
-            backup_files = list(backup_dir.glob("hotel_backup_*.json"))
-            if len(backup_files) > keep_count:
-                # Sắp xếp theo thời gian tạo (cũ nhất đầu tiên)
-                backup_files.sort(key=os.path.getctime)
-                # Xóa các file cũ vượt quá số lượng giữ lại
-                for old_file in backup_files[:-keep_count]:
-                    os.remove(old_file)
-                    logger.info(f"🗑️ Đã xóa backup cũ: {old_file}")
-        except Exception as e:
-            logger.error(f"Lỗi khi dọn dẹp backup cũ: {e}")
-
-    def restore_latest_backup():
-        """Tìm và khôi phục backup gần nhất khi app khởi động"""
-        try:
-            backup_dir = Path("backups")
-            if not backup_dir.exists():
-                logger.info("📂 Thư mục backup không tồn tại")
-                return False
-            
-            backup_files = list(backup_dir.glob("hotel_backup_*.json"))
-            if not backup_files:
-                logger.info("📭 Không tìm thấy file backup nào")
-                return False
-            
-            # Sắp xếp theo thời gian tạo (mới nhất đầu tiên)
-            backup_files.sort(key=os.path.getctime, reverse=True)
-            latest_backup = backup_files[0]
-            
-            # Đọc dữ liệu từ file JSON
-            with open(latest_backup, 'r', encoding='utf-8') as f:
-                backup_data = json.load(f)
-            
-            # Khôi phục dữ liệu
-            # Xóa toàn bộ dữ liệu cũ
-            with app.db_manager.get_connection() as conn:
-                with conn.cursor() as cursor:
-                    cursor.execute("DELETE FROM hk_logs")
-                    cursor.execute("DELETE FROM file_info")
-                    cursor.execute("DELETE FROM rooms")
-                    
-                    # Khôi phục bảng rooms
-                    if 'rooms' in backup_data:
-                        for room in backup_data['rooms']:
-                            # Xác định floor từ room_no (lấy ký tự đầu)
-                            room_no = room.get('roomNo', '')
-                            floor = int(room_no[0]) if room_no and room_no[0].isdigit() else 0
-                            
-                            cursor.execute("""
-                                INSERT INTO rooms (room_no, room_type, room_status, guest_name, check_in, check_out, notes, floor, last_updated, updated_by)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                            """, (
-                                room_no,
-                                room.get('roomType', ''),
-                                room.get('roomStatus', 'vc'),
-                                room.get('currentGuest', {}).get('name', ''),
-                                room.get('currentGuest', {}).get('checkIn', ''),
-                                room.get('currentGuest', {}).get('checkOut', ''),
-                                f"Pax: {room.get('currentGuest', {}).get('pax', 0)}" if room.get('currentGuest', {}).get('pax', 0) else '',
-                                floor,
-                                datetime.now(),
-                                'system_restore'
-                            ))
-                    
-                    # Khôi phục bảng hk_logs
-                    if 'hk_logs' in backup_data:
-                        for log in backup_data['hk_logs']:
-                            cursor.execute("""
-                                INSERT INTO hk_logs (room_no, old_status, new_status, changed_by, department, change_time, notes)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                            """, (
-                                log['room_no'],
-                                log.get('old_status', ''),
-                                log.get('new_status', ''),
-                                log.get('changed_by', ''),
-                                log.get('department', ''),
-                                log.get('change_time'),
-                                log.get('notes', '')
-                            ))
-                    
-                    # Khôi phục bảng file_info
-                    if 'file_info' in backup_data:
-                        for file_info in backup_data['file_info']:
-                            cursor.execute("""
-                                INSERT INTO file_info (file_name, last_modified, total_rows, last_sync, sync_by)
-                                VALUES (%s, %s, %s, %s, %s)
-                            """, (
-                                file_info.get('file_name', ''),
-                                file_info.get('last_modified'),
-                                file_info.get('total_rows', 0),
-                                file_info.get('last_sync'),
-                                file_info.get('sync_by', '')
-                            ))
-                    
-                    conn.commit()
-            
-            backup_time = datetime.fromtimestamp(latest_backup.stat().st_ctime)
-            logger.info(f"✅ Đã khôi phục từ backup: {latest_backup.name} (tạo lúc {backup_time})")
-            
-            return True
-            
-        except Exception as e:
-            logger.error(f"❌ Lỗi khôi phục backup: {e}")
-            return False
 
     # ==================== DECORATORS PHÂN QUYỀN ====================
 
@@ -316,176 +147,6 @@ def create_app():
         except Exception as e:
             logger.error(f"Lỗi khi tạo tasksheet: {e}")
             return render_template('error.html', error="Lỗi khi tạo tasksheet"), 500
-
-    # ==================== API BACKUP MANAGEMENT ====================
-
-    @app.route('/api/backup/create', methods=['POST'])
-    @login_required
-    @fo_required
-    def manual_backup():
-        """API tạo backup thủ công (chỉ FO)"""
-        try:
-            success = create_backup()
-            if success:
-                return jsonify({
-                    'success': True,
-                    'message': 'Đã tạo bản sao lưu thành công',
-                    'timestamp': datetime.now().isoformat()
-                })
-            else:
-                return jsonify({
-                    'success': False,
-                    'error': 'Không thể tạo bản sao lưu'
-                }), 500
-        except Exception as e:
-            logger.error(f"Lỗi tạo backup thủ công: {e}")
-            return jsonify({
-                'success': False,
-                'error': f'Lỗi tạo backup: {str(e)}'
-            }), 500
-
-    @app.route('/api/backup/list')
-    @login_required
-    @fo_required
-    def list_backups():
-        """API liệt kê các bản backup có sẵn"""
-        try:
-            backup_dir = Path("backups")
-            backup_files = []
-            
-            if backup_dir.exists():
-                for file_path in backup_dir.glob("hotel_backup_*.json"):
-                    stat = file_path.stat()
-                    backup_files.append({
-                        'filename': file_path.name,
-                        'size': round(stat.st_size / 1024 / 1024, 2),  # MB
-                        'created': datetime.fromtimestamp(stat.st_ctime).strftime('%H:%M %d/%m/%Y'),
-                        'filepath': str(file_path)
-                    })
-                
-                # Sắp xếp mới nhất đầu tiên
-                backup_files.sort(key=lambda x: x['created'], reverse=True)
-            
-            return jsonify({
-                'success': True,
-                'data': backup_files,
-                'total': len(backup_files),
-                'timestamp': datetime.now().isoformat()
-            })
-        except Exception as e:
-            logger.error(f"Lỗi liệt kê backup: {e}")
-            return jsonify({
-                'success': False,
-                'error': f'Lỗi liệt kê backup: {str(e)}'
-            }), 500
-
-    @app.route('/api/backup/restore', methods=['POST'])
-    @login_required
-    @fo_required
-    def restore_backup():
-        """API khôi phục từ bản backup (chỉ FO)"""
-        try:
-            data = request.get_json()
-            filename = data.get('filename')
-            
-            if not filename:
-                return jsonify({
-                    'success': False,
-                    'error': 'Thiếu tên file backup'
-                }), 400
-            
-            backup_path = Path("backups") / filename
-            
-            if not backup_path.exists():
-                return jsonify({
-                    'success': False,
-                    'error': 'File backup không tồn tại'
-                }), 404
-            
-            # Tạo backup hiện tại trước khi restore
-            create_backup()
-            
-            # Đọc dữ liệu từ file JSON
-            with open(backup_path, 'r', encoding='utf-8') as f:
-                backup_data = json.load(f)
-            
-            # Khôi phục dữ liệu
-            # Xóa toàn bộ dữ liệu cũ
-            with app.db_manager.get_connection() as conn:
-                with conn.cursor() as cursor:
-                    cursor.execute("DELETE FROM hk_logs")
-                    cursor.execute("DELETE FROM file_info")
-                    cursor.execute("DELETE FROM rooms")
-                    
-                    # Khôi phục bảng rooms
-                    if 'rooms' in backup_data:
-                        for room in backup_data['rooms']:
-                            # Xác định floor từ room_no (lấy ký tự đầu)
-                            room_no = room.get('roomNo', '')
-                            floor = int(room_no[0]) if room_no and room_no[0].isdigit() else 0
-                            
-                            cursor.execute("""
-                                INSERT INTO rooms (room_no, room_type, room_status, guest_name, check_in, check_out, notes, floor, last_updated, updated_by)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                            """, (
-                                room_no,
-                                room.get('roomType', ''),
-                                room.get('roomStatus', 'vc'),
-                                room.get('currentGuest', {}).get('name', ''),
-                                room.get('currentGuest', {}).get('checkIn', ''),
-                                room.get('currentGuest', {}).get('checkOut', ''),
-                                f"Pax: {room.get('currentGuest', {}).get('pax', 0)}" if room.get('currentGuest', {}).get('pax', 0) else '',
-                                floor,
-                                datetime.now(),
-                                'system_restore'
-                            ))
-                    
-                    # Khôi phục bảng hk_logs
-                    if 'hk_logs' in backup_data:
-                        for log in backup_data['hk_logs']:
-                            cursor.execute("""
-                                INSERT INTO hk_logs (room_no, old_status, new_status, changed_by, department, change_time, notes)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                            """, (
-                                log['room_no'],
-                                log.get('old_status', ''),
-                                log.get('new_status', ''),
-                                log.get('changed_by', ''),
-                                log.get('department', ''),
-                                log.get('change_time'),
-                                log.get('notes', '')
-                            ))
-                    
-                    # Khôi phục bảng file_info
-                    if 'file_info' in backup_data:
-                        for file_info in backup_data['file_info']:
-                            cursor.execute("""
-                                INSERT INTO file_info (file_name, last_modified, total_rows, last_sync, sync_by)
-                                VALUES (%s, %s, %s, %s, %s)
-                            """, (
-                                file_info.get('file_name', ''),
-                                file_info.get('last_modified'),
-                                file_info.get('total_rows', 0),
-                                file_info.get('last_sync'),
-                                file_info.get('sync_by', '')
-                            ))
-                    
-                    conn.commit()
-            
-            logger.info(f"✅ Đã khôi phục từ backup: {filename}")
-            
-            return jsonify({
-                'success': True,
-                'message': f'Đã khôi phục thành công từ {filename}',
-                'timestamp': datetime.now().isoformat()
-            })
-            
-        except Exception as e:
-            logger.error(f"Lỗi khôi phục backup: {e}")
-            return jsonify({
-                'success': False,
-                'error': f'Lỗi khôi phục: {str(e)}'
-            }), 500
 
     # ==================== API ENDPOINTS ====================
 
@@ -636,12 +297,9 @@ def create_app():
     @login_required
     @fo_required
     def refresh_data():
-        """API endpoint để refresh dữ liệu từ Google Sheets (chỉ FO) - CÓ BACKUP"""
+        """API endpoint để refresh dữ liệu từ Google Sheets (chỉ FO)"""
         try:
             user_info = f"{session.get('user_info', {}).get('name', 'Unknown')} ({session.get('user_info', {}).get('department', 'Unknown')})"
-            
-            # ✅ TẠO BACKUP TRƯỚC KHI REFRESH (vì sẽ thay đổi nhiều dữ liệu)
-            threading.Thread(target=create_backup, daemon=True).start()
             
             # Sử dụng phương thức mới để khởi tạo từ Google Sheets
             success = app.data_processor.initialize_rooms_from_google_sheets(user_info)
@@ -674,7 +332,7 @@ def create_app():
     @app.route('/api/rooms/update', methods=['POST'])
     @login_required
     def update_room():
-        """API endpoint để cập nhật thông tin một phòng - CÓ BACKUP"""
+        """API endpoint để cập nhật thông tin một phòng"""
         try:
             data = request.get_json()
             room_no = data.get('roomNo')
@@ -743,9 +401,6 @@ def create_app():
                     'error': 'Không thể cập nhật phòng'
                 }), 500
             
-            # ✅ TẠO BACKUP SAU KHI CẬP NHẬT THÀNH CÔNG
-            threading.Thread(target=create_backup, daemon=True).start()
-            
             # GHI LOG THAY ĐỔI TRẠNG THÁI PHÒNG
             if old_status and new_status and old_status != new_status:
                 app.hk_logger.log_room_status_change(
@@ -800,7 +455,7 @@ def create_app():
     @login_required
     @hk_required
     def hk_quick_update():
-        """API cho HK cập nhật nhanh trạng thái phòng - CÓ BACKUP"""
+        """API cho HK cập nhật nhanh trạng thái phòng"""
         try:
             data = request.get_json()
             room_no = data.get('roomNo')
@@ -864,9 +519,6 @@ def create_app():
                     'error': 'Không thể cập nhật phòng'
                 }), 500
             
-            # ✅ TẠO BACKUP SAU KHI CẬP NHẬT THÀNH CÔNG
-            threading.Thread(target=create_backup, daemon=True).start()
-            
             # GHI LOG THAY ĐỔI TRẠNG THÁI PHÒNG
             app.hk_logger.log_room_status_change(
                 room_no, 
@@ -913,8 +565,7 @@ def create_app():
         try:
             # Test database connection
             with app.db_manager.get_connection() as conn:
-                with conn.cursor() as cursor:
-                    cursor.execute("SELECT 1")
+                conn.execute("SELECT 1")
             
             return jsonify({
                 'status': 'healthy',
@@ -950,17 +601,9 @@ def create_app():
     # ==================== KHỞI TẠO DỮ LIỆU ====================
 
     def initialize_data():
-        """Khởi tạo dữ liệu - Ưu tiên khôi phục từ backup trước"""
+        """Khởi tạo dữ liệu nếu database trống"""
         try:
             if app.db_manager.is_database_empty():
-                # THỬ KHÔI PHỤC TỪ BACKUP TRƯỚC
-                backup_restored = restore_latest_backup()
-                
-                if backup_restored:
-                    logger.info("✅ Đã khôi phục dữ liệu từ backup gần nhất")
-                    return
-                
-                # Nếu không có backup, mới lấy từ Google Sheets
                 logger.info("🔄 Khởi tạo dữ liệu lần đầu từ Google Sheets...")
                 success = app.data_processor.initialize_rooms_from_google_sheets('system_initialization')
                 if success:
@@ -973,6 +616,10 @@ def create_app():
             logger.error(f"❌ Lỗi khởi tạo dữ liệu: {e}")
 
     with app.app_context():
+        # Khởi tạo database tables nếu chưa tồn tại
+        app.db_manager.initialize_database()
+        
+        # Khởi tạo dữ liệu
         initialize_data()
 
     return app
@@ -980,25 +627,23 @@ def create_app():
 app = create_app()
 
 if __name__ == '__main__':
-    # Xác định host và port cho Render
-    host = '0.0.0.0'  # Render cần bind to 0.0.0.0
-    port = int(os.environ.get('PORT', 5000))  # Render cung cấp PORT
-    
-    print("🚀 Dashboard Quản Lý Khách Sạn - RENDER EDITION")
+    print("🚀 Dashboard Quản Lý Khách Sạn - POSTGRESQL EDITION")
     print("=" * 50)
-    print(f"🔐 Đăng nhập: http://localhost:{port}/login")
-    print(f"🏨 Dashboard: http://localhost:{port}/")
-    print(f"🗃️  Database: PostgreSQL on Render")
-    print(f"💾 Backup: JSON-based Auto Backup")
+    print("🔐 Đăng nhập: http://localhost:5000/login")
+    print("🏨 Dashboard: http://localhost:5000/")
+    print("🗃️  Database: PostgreSQL (Render)")
     print("🎯 TÍNH NĂNG MỚI:")
-    print("   • PostgreSQL Database - Render Cloud")
-    print("   • Event-Based Backup - Sao lưu dạng JSON")
-    print("   • Chỉ giữ 5 bản backup gần nhất")
-    print("   • Tự động khôi phục từ backup khi khởi động")
-    print("📊 BACKUP API:")
-    print("   • List: GET http://localhost:{port}/api/backup/list")
-    print("   • Create: POST http://localhost:{port}/api/backup/create")
-    print("   • Restore: POST http://localhost:{port}/api/backup/restore")
+    print("   • PostgreSQL Database - Dữ liệu persistent")
+    print("   • Không mất dữ liệu khi restart")
+    print("   • Auto backup bởi Render")
+    print("📊 CÁC API CHÍNH:")
+    print("   • Rooms: GET http://localhost:5000/api/rooms")
+    print("   • Refresh: POST http://localhost:5000/api/refresh")
+    print("   • HK Report: GET http://localhost:5000/api/report/hk")
     print("=" * 50)
     
-    app.run(host=host, port=port, debug=app.config['DEBUG'])
+    app.run(
+        host='0.0.0.0', 
+        port=5000, 
+        debug=app.config['DEBUG']
+    )
