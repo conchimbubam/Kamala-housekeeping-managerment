@@ -12,7 +12,7 @@ class Config:
     DB_PORT = '5432'  # Port mặc định PostgreSQL
     DB_NAME = 'hotel_management'  # Tên database (có thể cần điều chỉnh)
     DB_USER = 'hotel_user'  # Username (có thể cần điều chỉnh)
-    DB_PASSWORD = 'dpg-d4hu220gjchc73dh9ogg-a'  # Password từ Render
+    DB_PASSWORD = 'h2348SIpwIDUk0Uv7xNu4VRATOJNHYzb'  # Password từ Render
     
     # PostgreSQL connection string
     SQLALCHEMY_DATABASE_URI = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
