@@ -34,7 +34,9 @@ class DatabaseManager:
             raise ValueError("DATABASE_URL là bắt buộc. Kiểm tra config.py hoặc environment variables.")
         
         logger.info(f"🔗 Database URL: {self._mask_db_url(self.db_url)}")
-        self.init_database()
+        
+        # Khởi tạo database ngay khi tạo instance
+        self.initialize_database()
     
     def _mask_db_url(self, db_url):
         """Ẩn password trong database URL để log an toàn"""
@@ -77,8 +79,9 @@ class DatabaseManager:
             logger.error(f"❌ Lỗi parse database URL: {e}")
             raise ValueError(f"Database URL không hợp lệ: {e}")
     
-    def init_database(self):
-        """Khởi tạo database với schema hoàn chỉnh cho PostgreSQL"""
+    def initialize_database(self):
+        """Khởi tạo database với schema hoàn chỉnh cho PostgreSQL - Tương thích với app.py"""
+        logger.info("🔄 Đang khởi tạo database schema...")
         max_retries = 3
         for attempt in range(max_retries):
             try:
@@ -153,15 +156,21 @@ class DatabaseManager:
                     
                     conn.commit()
                     logger.info("✅ PostgreSQL database schema đã được khởi tạo")
-                    break
+                    return True
                     
             except Exception as e:
                 logger.error(f"❌ Lỗi khởi tạo PostgreSQL database (lần {attempt + 1}): {e}")
                 if attempt == max_retries - 1:
                     logger.error("❌ Không thể khởi tạo database sau nhiều lần thử")
-                    raise
+                    return False
                 import time
                 time.sleep(2)  # Chờ 2 giây trước khi thử lại
+        return False
+
+    # Giữ nguyên phương thức cũ để tương thích
+    def init_database(self):
+        """Phương thức cũ để tương thích - gọi initialize_database()"""
+        return self.initialize_database()
 
     def is_database_empty(self):
         """Kiểm tra database có dữ liệu không"""
@@ -341,7 +350,7 @@ class DatabaseManager:
                         'status': 'healthy' if basic_test == 1 else 'unhealthy',
                         'database': 'PostgreSQL',
                         'required_tables': list(required_tables),
-                        'missing_tables': ['rooms', 'activity_logs', 'sync_history'] - required_tables,
+                        'missing_tables': list(set(['rooms', 'activity_logs', 'sync_history']) - required_tables),
                         'room_count': room_count,
                         'log_count': log_count,
                         'timestamp': datetime.now().isoformat()
@@ -406,6 +415,12 @@ if __name__ == '__main__':
             print(f"   • Rooms: {info.get('room_count', 0)}")
             print(f"   • Activity Logs: {info.get('log_count', 0)}")
             print(f"   • Status Stats: {info.get('status_stats', {})}")
+            
+            # Test initialize_database method
+            print(f"🔄 Testing initialize_database...")
+            success = db.initialize_database()
+            print(f"   • initialize_database: {'✅ Success' if success else '❌ Failed'}")
+            
         else:
             print(f"❌ Lỗi kết nối database: {result.get('error')}")
     except Exception as e:
