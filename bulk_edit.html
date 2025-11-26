@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chỉnh sửa hàng loạt - Kamala Housekeeping</title>
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .table-container {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .table th {
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+        }
+        .selected-row {
+            background-color: #e3f2fd !important;
+        }
+        .form-control:disabled {
+            background-color: #f8f9fa;
+            opacity: 0.6;
+        }
+        .bulk-actions {
+            position: sticky;
+            bottom: 0;
+            background: white;
+            padding: 10px 0;
+            border-top: 2px solid #dee2e6;
+            z-index: 100;
+        }
+        .room-checkbox {
+            width: 30px;
+        }
+        .status-select {
+            min-width: 120px;
+        }
+        .arrival-section {
+            background-color: #fff3cd;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ffeaa7;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">
+                <i class="fas fa-edit me-2"></i>Chỉnh sửa hàng loạt - KAMALA
+            </span>
+            <div class="navbar-text d-flex align-items-center">
+                {% if user %}
+                <div class="me-3 text-light">
+                    <small>Xin chào, <strong>{{ user.name }}</strong> ({{ user.department }})</small>
+                </div>
+                {% endif %}
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-arrow-left me-1"></i>Về Dashboard
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-3">
+        <!-- Bulk Actions Panel -->
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-bulk me-2"></i>Thao tác hàng loạt
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="select-all">
+                            <label class="form-check-label" for="select-all">
+                                Chọn tất cả (<span id="selected-count">0</span> phòng đã chọn)
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <button class="btn btn-success me-2" onclick="applyBulkChanges()">
+                            <i class="fas fa-check me-1"></i>Áp dụng thay đổi
+                        </button>
+                        <button class="btn btn-secondary" onclick="clearSelection()">
+                            <i class="fas fa-times me-1"></i>Bỏ chọn
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Bulk Edit Form -->
+                <div class="row mt-3" id="bulk-edit-form" style="display: none;">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header bg-warning">
+                                <small><i class="fas fa-edit me-1"></i>Chỉnh sửa cho các phòng đã chọn</small>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-3">
+                                        <label class="form-label">Tình trạng FO</label>
+                                        <select class="form-select" id="bulk-fo-status">
+                                            <option value="">-- Giữ nguyên --</option>
+                                            <option value="Vacant">Vacant</option>
+                                            <option value="Occupied">Occupied</option>
+                                            <option value="Lock">Lock</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Tình trạng HK</label>
+                                        <select class="form-select" id="bulk-hk-status">
+                                            <option value="">-- Giữ nguyên --</option>
+                                            <option value="Dirty">Dirty</option>
+                                            <option value="Clean">Clean</option>
+                                            <option value="Inspected">Inspected</option>
+                                            <option value="DND">DND</option>
+                                            <option value="NN">NN</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">ARR</label>
+                                        <select class="form-select" id="bulk-arrival">
+                                            <option value="">-- Giữ nguyên --</option>
+                                            <option value="true">Có ARR</option>
+                                            <option value="false">Không ARR</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">&nbsp;</label>
+                                        <button class="btn btn-primary w-100" onclick="applyBulkSettings()">
+                                            <i class="fas fa-play me-1"></i>Áp dụng
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rooms Table -->
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <i class="fas fa-list me-2"></i>Danh sách phòng
+            </div>
+            <div class="card-body p-0">
+                <div class="table-container">
+                    <table class="table table-striped table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th class="room-checkbox">
+                                    <input type="checkbox" id="select-all-header">
+                                </th>
+                                <th>Phòng</th>
+                                <th>Tình trạng FO</th>
+                                <th>Tình trạng HK</th>
+                                <th>Khách hiện tại</th>
+                                <th>Ngày C/I</th>
+                                <th>Ngày C/O</th>
+                                <th>Số khách</th>
+                                <th>ARR</th>
+                                <th>Khách mới</th>
+                                <th>Ngày C/I mới</th>
+                                <th>Ngày C/O mới</th>
+                                <th>Số khách mới</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rooms-table-body">
+                            <!-- Rooms will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div class="text-center py-5" id="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Đang tải...</span>
+            </div>
+            <p class="mt-2">Đang tải dữ liệu phòng...</p>
+        </div>
+
+        <!-- Error Message -->
+        <div class="alert alert-danger text-center" id="error-message" style="display: none;">
+            <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+            <h4>Không thể tải dữ liệu</h4>
+            <p id="error-text">Vui lòng thử lại sau</p>
+            <button class="btn btn-primary" onclick="loadRooms()">
+                <i class="fas fa-redo me-2"></i>Thử lại
+            </button>
+        </div>
+    </div>
+
+    <!-- Success Toast -->
+    <div class="toast-container position-fixed top-0 end-0 p-3">
+        <div id="success-toast" class="toast" role="alert">
+            <div class="toast-header bg-success text-white">
+                <i class="fas fa-check-circle me-2"></i>
+                <strong class="me-auto">Thành công</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body" id="success-message"></div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script>
+        let allRooms = [];
+        let selectedRooms = new Set();
+
+        // DOM Content Loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            loadRooms();
+            setupEventListeners();
+        });
+
+        // Event Listeners
+        function setupEventListeners() {
+            // Select all checkboxes
+            document.getElementById('select-all').addEventListener('change', toggleSelectAll);
+            document.getElementById('select-all-header').addEventListener('change', toggleSelectAll);
+        }
+
+        // Load rooms data
+        async function loadRooms() {
+            showLoading();
+            
+            try {
+                const response = await fetch('/api/rooms');
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch data');
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    allRooms = data.data;
+                    displayRoomsTable();
+                    showTable();
+                } else {
+                    throw new Error('Invalid data format');
+                }
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showError('Không thể tải dữ liệu: ' + error.message);
+            }
+        }
+
+        // Display rooms in table
+        function displayRoomsTable() {
+            const tbody = document.getElementById('rooms-table-body');
+            
+            tbody.innerHTML = allRooms.map(room => {
+                const hasArrival = room.roomStatus && room.roomStatus.includes('/arr');
+                
+                return `
+                    <tr id="room-${room.roomNo}" data-room-no="${room.roomNo}">
+                        <td>
+                            <input type="checkbox" class="room-checkbox" value="${room.roomNo}" 
+                                   onchange="toggleRoomSelection('${room.roomNo}', this.checked)">
+                        </td>
+                        <td><strong>${room.roomNo}</strong></td>
+                        <td>
+                            <select class="form-select form-select-sm fo-status" onchange="markRoomChanged('${room.roomNo}')">
+                                <option value="Vacant" ${getFOStatus(room) === 'Vacant' ? 'selected' : ''}>Vacant</option>
+                                <option value="Occupied" ${getFOStatus(room) === 'Occupied' ? 'selected' : ''}>Occupied</option>
+                                <option value="Lock" ${getFOStatus(room) === 'Lock' ? 'selected' : ''}>Lock</option>
+                            </select>
+                        </td>
+                        <td>
+                            <select class="form-select form-select-sm hk-status" onchange="markRoomChanged('${room.roomNo}')">
+                                <option value="Dirty" ${getHKStatus(room) === 'Dirty' ? 'selected' : ''}>Dirty</option>
+                                <option value="Clean" ${getHKStatus(room) === 'Clean' ? 'selected' : ''}>Clean</option>
+                                <option value="Inspected" ${getHKStatus(room) === 'Inspected' ? 'selected' : ''}>Inspected</option>
+                                <option value="DND" ${getHKStatus(room) === 'DND' ? 'selected' : ''}>DND</option>
+                                <option value="NN" ${getHKStatus(room) === 'NN' ? 'selected' : ''}>NN</option>
+                            </select>
+                        </td>
+                        <td>
+                            <input type="text" class="form-control form-control-sm current-guest-name" 
+                                   value="${room.currentGuest?.name || ''}" 
+                                   onchange="markRoomChanged('${room.roomNo}')">
+                        </td>
+                        <td>
+                            <input type="date" class="form-control form-control-sm current-checkin" 
+                                   value="${formatDateForInput(room.currentGuest?.checkIn)}" 
+                                   onchange="markRoomChanged('${room.roomNo}')">
+                        </td>
+                        <td>
+                            <input type="date" class="form-control form-control-sm current-checkout" 
+                                   value="${formatDateForInput(room.currentGuest?.checkOut)}" 
+                                   onchange="markRoomChanged('${room.roomNo}')">
+                        </td>
+                        <td>
+                            <input type="number" class="form-control form-control-sm current-pax" 
+                                   value="${room.currentGuest?.pax || ''}" min="1"
+                                   onchange="markRoomChanged('${room.roomNo}')">
+                        </td>
+                        <td>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input arrival-switch" type="checkbox" 
+                                       ${hasArrival ? 'checked' : ''} 
+                                       onchange="toggleArrivalFields('${room.roomNo}', this.checked)">
+                            </div>
+                        </td>
+                        <td>
+                            <input type="text" class="form-control form-control-sm new-guest-name" 
+                                   value="${room.newGuest?.name || ''}" 
+                                   ${!hasArrival ? 'disabled' : ''}
+                                   onchange="markRoomChanged('${room.roomNo}')">
+                        </td>
+                        <td>
+                            <input type="date" class="form-control form-control-sm new-checkin" 
+                                   value="${formatDateForInput(room.newGuest?.checkIn)}" 
+                                   ${!hasArrival ? 'disabled' : ''}
+                                   onchange="markRoomChanged('${room.roomNo}')">
+                        </td>
+                        <td>
+                            <input type="date" class="form-control form-control-sm new-checkout" 
+                                   value="${formatDateForInput(room.newGuest?.checkOut)}" 
+                                   ${!hasArrival ? 'disabled' : ''}
+                                   onchange="markRoomChanged('${room.roomNo}')">
+                        </td>
+                        <td>
+                            <input type="number" class="form-control form-control-sm new-pax" 
+                                   value="${room.newGuest?.pax || ''}" min="1"
+                                   ${!hasArrival ? 'disabled' : ''}
+                                   onchange="markRoomChanged('${room.roomNo}')">
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-success" onclick="saveRoom('${room.roomNo}')">
+                                <i class="fas fa-save"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Helper functions
+        function getFOStatus(room) {
+            const status = room.roomStatus;
+            if (status.includes('vd') || status.includes('vc')) return 'Vacant';
+            if (status.includes('od') || status.includes('oc') || status.includes('dnd') || status.includes('nn')) return 'Occupied';
+            if (status.includes('lock')) return 'Lock';
+            return 'Vacant';
+        }
+
+        function getHKStatus(room) {
+            const status = room.roomStatus;
+            if (status.includes('vd') || status.includes('od')) return 'Dirty';
+            if (status.includes('vc') || status.includes('oc')) return 'Clean';
+            if (status.includes('ip')) return 'Inspected';
+            if (status.includes('dnd')) return 'DND';
+            if (status.includes('nn')) return 'NN';
+            return 'Dirty';
+        }
+
+        function formatDateForInput(dateStr) {
+            if (!dateStr || dateStr === '00-01-00') return '';
+            // Convert from DD-MM-YY to YYYY-MM-DD
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                const day = parts[0];
+                const month = parts[1];
+                const year = '20' + parts[2];
+                return `${year}-${month}-${day}`;
+            }
+            return '';
+        }
+
+        function formatDateForOutput(dateStr) {
+            if (!dateStr) return '00-01-00';
+            // Convert from YYYY-MM-DD to DD-MM-YY
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                const year = parts[0].substring(2);
+                const month = parts[1];
+                const day = parts[2];
+                return `${day}-${month}-${year}`;
+            }
+            return '00-01-00';
+        }
+
+        // Selection management
+        function toggleSelectAll(event) {
+            const isChecked = event.target.checked;
+            const checkboxes = document.querySelectorAll('.room-checkbox');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = isChecked;
+                toggleRoomSelection(checkbox.value, isChecked);
+            });
+            
+            updateBulkEditForm();
+        }
+
+        function toggleRoomSelection(roomNo, isSelected) {
+            if (isSelected) {
+                selectedRooms.add(roomNo);
+                document.getElementById(`room-${roomNo}`).classList.add('selected-row');
+            } else {
+                selectedRooms.delete(roomNo);
+                document.getElementById(`room-${roomNo}`).classList.remove('selected-row');
+            }
+            
+            updateSelectedCount();
+            updateBulkEditForm();
+        }
+
+        function updateSelectedCount() {
+            document.getElementById('selected-count').textContent = selectedRooms.size;
+        }
+
+        function updateBulkEditForm() {
+            const form = document.getElementById('bulk-edit-form');
+            if (selectedRooms.size > 0) {
+                form.style.display = 'block';
+            } else {
+                form.style.display = 'none';
+            }
+        }
+
+        function clearSelection() {
+            selectedRooms.clear();
+            const checkboxes = document.querySelectorAll('.room-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+                const roomNo = checkbox.value;
+                document.getElementById(`room-${roomNo}`)?.classList.remove('selected-row');
+            });
+            updateSelectedCount();
+            updateBulkEditForm();
+        }
+
+        // Arrival fields management
+        function toggleArrivalFields(roomNo, isArrival) {
+            const row = document.getElementById(`room-${roomNo}`);
+            const fields = row.querySelectorAll('.new-guest-name, .new-checkin, .new-checkout, .new-pax');
+            
+            fields.forEach(field => {
+                field.disabled = !isArrival;
+            });
+            
+            markRoomChanged(roomNo);
+        }
+
+        // Bulk operations
+        function applyBulkSettings() {
+            const foStatus = document.getElementById('bulk-fo-status').value;
+            const hkStatus = document.getElementById('bulk-hk-status').value;
+            const arrival = document.getElementById('bulk-arrival').value;
+
+            selectedRooms.forEach(roomNo => {
+                const row = document.getElementById(`room-${roomNo}`);
+                
+                if (foStatus) {
+                    row.querySelector('.fo-status').value = foStatus;
+                }
+                if (hkStatus) {
+                    row.querySelector('.hk-status').value = hkStatus;
+                }
+                if (arrival !== '') {
+                    const isArrival = arrival === 'true';
+                    row.querySelector('.arrival-switch').checked = isArrival;
+                    toggleArrivalFields(roomNo, isArrival);
+                }
+                
+                markRoomChanged(roomNo);
+            });
+
+            showToast('Đã áp dụng cài đặt cho ' + selectedRooms.size + ' phòng');
+        }
+
+        // Mark room as changed
+        function markRoomChanged(roomNo) {
+            const row = document.getElementById(`room-${roomNo}`);
+            const saveBtn = row.querySelector('button');
+            saveBtn.classList.remove('btn-success');
+            saveBtn.classList.add('btn-warning');
+            saveBtn.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
+        }
+
+        // Save individual room
+        async function saveRoom(roomNo) {
+            const row = document.getElementById(`room-${roomNo}`);
+            const roomData = getRoomDataFromRow(row);
+            
+            try {
+                const response = await fetch('/api/rooms/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        roomNo: roomNo,
+                        updatedData: roomData
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    const saveBtn = row.querySelector('button');
+                    saveBtn.classList.remove('btn-warning');
+                    saveBtn.classList.add('btn-success');
+                    saveBtn.innerHTML = '<i class="fas fa-save"></i>';
+                    showToast(`Đã lưu phòng ${roomNo}`);
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                console.error('Error saving room:', error);
+                showToast(`Lỗi khi lưu phòng ${roomNo}: ${error.message}`, 'error');
+            }
+        }
+
+        // Save all selected rooms
+        async function applyBulkChanges() {
+            if (selectedRooms.size === 0) {
+                showToast('Vui lòng chọn ít nhất một phòng', 'error');
+                return;
+            }
+
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (const roomNo of selectedRooms) {
+                const row = document.getElementById(`room-${roomNo}`);
+                const roomData = getRoomDataFromRow(row);
+                
+                try {
+                    const response = await fetch('/api/rooms/update', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            roomNo: roomNo,
+                            updatedData: roomData
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        successCount++;
+                        const saveBtn = row.querySelector('button');
+                        saveBtn.classList.remove('btn-warning');
+                        saveBtn.classList.add('btn-success');
+                        saveBtn.innerHTML = '<i class="fas fa-save"></i>';
+                    } else {
+                        errorCount++;
+                    }
+                } catch (error) {
+                    errorCount++;
+                }
+            }
+
+            if (errorCount === 0) {
+                showToast(`Đã lưu thành công ${successCount} phòng`);
+            } else {
+                showToast(`Đã lưu ${successCount} phòng, ${errorCount} phòng lỗi`, 'error');
+            }
+        }
+
+        // Extract room data from table row
+        function getRoomDataFromRow(row) {
+            const foStatus = row.querySelector('.fo-status').value;
+            const hkStatus = row.querySelector('.hk-status').value;
+            const isArrival = row.querySelector('.arrival-switch').checked;
+            
+            // Combine FO and HK status to create roomStatus
+            let roomStatus = '';
+            if (foStatus === 'Vacant') {
+                roomStatus = hkStatus === 'Clean' ? 'vc' : 'vd';
+            } else if (foStatus === 'Occupied') {
+                roomStatus = hkStatus.toLowerCase();
+            } else if (foStatus === 'Lock') {
+                roomStatus = 'lock';
+            }
+            
+            if (isArrival && foStatus === 'Vacant') {
+                roomStatus += '/arr';
+            }
+
+            const currentGuest = {
+                name: row.querySelector('.current-guest-name').value || '',
+                checkIn: formatDateForOutput(row.querySelector('.current-checkin').value),
+                checkOut: formatDateForOutput(row.querySelector('.current-checkout').value),
+                pax: parseInt(row.querySelector('.current-pax').value) || 1
+            };
+
+            const newGuest = isArrival ? {
+                name: row.querySelector('.new-guest-name').value || '',
+                checkIn: formatDateForOutput(row.querySelector('.new-checkin').value),
+                checkOut: formatDateForOutput(row.querySelector('.new-checkout').value),
+                pax: parseInt(row.querySelector('.new-pax').value) || 1
+            } : { name: '', checkIn: '00-01-00', checkOut: '00-01-00', pax: 1 };
+
+            return {
+                roomStatus: roomStatus,
+                currentGuest: currentGuest,
+                newGuest: newGuest
+            };
+        }
+
+        // UI helpers
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('success-toast');
+            const toastBody = document.getElementById('success-message');
+            
+            toastBody.textContent = message;
+            
+            if (type === 'error') {
+                toast.querySelector('.toast-header').className = 'toast-header bg-danger text-white';
+            } else {
+                toast.querySelector('.toast-header').className = 'toast-header bg-success text-white';
+            }
+            
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+        }
+
+        function showLoading() {
+            document.getElementById('loading-spinner').style.display = 'block';
+            document.getElementById('error-message').style.display = 'none';
+            document.querySelector('.table-container').style.display = 'none';
+        }
+
+        function showTable() {
+            document.getElementById('loading-spinner').style.display = 'none';
+            document.getElementById('error-message').style.display = 'none';
+            document.querySelector('.table-container').style.display = 'block';
+        }
+
+        function showError(message) {
+            document.getElementById('loading-spinner').style.display = 'none';
+            document.getElementById('error-message').style.display = 'block';
+            document.querySelector('.table-container').style.display = 'none';
+            document.getElementById('error-text').textContent = message;
+        }
+    </script>
+</body>
+</html>
