@@ -41,16 +41,14 @@
                             </a>
                         </li>
                         {% endif %}
-
-                         <!-- Nút Bulk Update - Chỉ FO mới thấy -->
+                        <!-- Nút Chỉnh sửa hàng loạt MỚI THÊM - Chỉ FO mới thấy -->
                         {% if user and user.department == 'FO' %}
                         <li>
-                            <a class="dropdown-item" href="#" onclick="showBulkUpdateModal()">
-                                <i class="fas fa-edit me-2"></i>Cập nhật hàng loạt
+                            <a class="dropdown-item" href="/bulk-edit" target="_blank">
+                                 <i class="fas fa-pencil-alt me-2"></i>Chỉnh sửa hàng loạt
                             </a>
                         </li>
                         {% endif %}
-                                               
                         <!-- Nút Báo cáo HK - Hiển thị cho cả FO và HK -->
                         {% if user and (user.department == 'FO' or user.department == 'HK') %}
                         <li>
