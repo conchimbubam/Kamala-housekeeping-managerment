@@ -1,10 +1,6 @@
-[file name]: dashboard.js
-[file content begin]
 // Dashboard JavaScript
 let allRooms = [];
 let currentFilter = 'all';
-let longPressTimer = null;
-const LONG_PRESS_DURATION = 500; // milliseconds
 
 // DOM Content Loaded
 document.addEventListener('DOMContentLoaded', function() {
@@ -199,148 +195,6 @@ function displayRoomsByFloor(rooms) {
             </div>
         `;
     }).join('');
-    
-    // Attach long press events after rendering rooms
-    attachLongPressEvents();
-}
-
-// Attach long press events to room cards
-function attachLongPressEvents() {
-    const roomCards = document.querySelectorAll('.room-card');
-    
-    roomCards.forEach(card => {
-        // Touch events for mobile
-        card.addEventListener('touchstart', handleLongPressStart);
-        card.addEventListener('touchend', handleLongPressEnd);
-        card.addEventListener('touchmove', handleLongPressCancel);
-        
-        // Mouse events for desktop
-        card.addEventListener('mousedown', handleLongPressStart);
-        card.addEventListener('mouseup', handleLongPressEnd);
-        card.addEventListener('mouseleave', handleLongPressCancel);
-    });
-}
-
-// Handle long press start
-function handleLongPressStart(e) {
-    const roomCard = e.currentTarget;
-    const roomNo = roomCard.getAttribute('data-room-no');
-    
-    // Prevent context menu on long press
-    e.preventDefault();
-    
-    longPressTimer = setTimeout(() => {
-        quickUpdateToClean(roomNo, roomCard);
-    }, LONG_PRESS_DURATION);
-    
-    // Add visual feedback
-    roomCard.classList.add('long-press-active');
-}
-
-// Handle long press end
-function handleLongPressEnd(e) {
-    if (longPressTimer) {
-        clearTimeout(longPressTimer);
-        longPressTimer = null;
-    }
-    
-    // Remove visual feedback
-    const roomCard = e.currentTarget;
-    roomCard.classList.remove('long-press-active');
-}
-
-// Handle long press cancel (when user moves finger/mouse away)
-function handleLongPressCancel(e) {
-    if (longPressTimer) {
-        clearTimeout(longPressTimer);
-        longPressTimer = null;
-    }
-    
-    // Remove visual feedback
-    const roomCard = e.currentTarget;
-    roomCard.classList.remove('long-press-active');
-}
-
-// Quick update room status to clean
-async function quickUpdateToClean(roomNo, roomCardElement) {
-    const room = allRooms.find(r => r.roomNo === roomNo);
-    if (!room) return;
-    
-    let newStatus = room.roomStatus;
-    
-    // Apply transformation rules
-    if (room.roomStatus === 'od') {
-        newStatus = 'oc';
-    } else if (room.roomStatus === 'vd') {
-        newStatus = 'vc';
-    } else {
-        // For other statuses, keep original status
-        return;
-    }
-    
-    try {
-        // Show loading state on the room card
-        roomCardElement.classList.add('updating');
-        
-        const response = await fetch(`/api/rooms/${roomNo}`, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                roomStatus: newStatus
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            // Update local data
-            room.roomStatus = newStatus;
-            
-            // Update display
-            displayRoomsByFloor(allRooms);
-            updateFilterCounts(allRooms);
-            
-            // Show success feedback
-            showQuickUpdateSuccess(roomNo, roomCardElement);
-        } else {
-            throw new Error(data.error || 'Cập nhật thất bại');
-        }
-    } catch (error) {
-        console.error('Quick update error:', error);
-        showQuickUpdateError(roomNo, roomCardElement);
-    } finally {
-        roomCardElement.classList.remove('updating');
-    }
-}
-
-// Show quick update success feedback
-function showQuickUpdateSuccess(roomNo, roomCardElement) {
-    // Add success visual feedback
-    roomCardElement.classList.add('update-success');
-    
-    // Show toast notification
-    showSuccessMessage(`Đã cập nhật phòng ${roomNo} thành công`);
-    
-    // Remove success class after animation
-    setTimeout(() => {
-        roomCardElement.classList.remove('update-success');
-    }, 1000);
-}
-
-// Show quick update error feedback
-function showQuickUpdateError(roomNo, roomCardElement) {
-    // Add error visual feedback
-    roomCardElement.classList.add('update-error');
-    
-    // Show error message
-    showError(`Lỗi khi cập nhật phòng ${roomNo}`);
-    
-    // Remove error class after animation
-    setTimeout(() => {
-        roomCardElement.classList.remove('update-error');
-    }, 1000);
 }
 
 // Create floor stats HTML - HIỂN THỊ ĐẦY ĐỦ CÁC TRẠNG THÁI
@@ -399,12 +253,11 @@ function createRoomCard(room) {
     
     return `
         <div class="col-6 col-sm-4 col-md-3 col-lg-2 col-xl-1">
-            <div class="room-card ${statusClass}" data-room-no="${room.roomNo}" onclick="showRoomEditModal('${room.roomNo}')">
+            <div class="room-card ${statusClass}" onclick="showRoomEditModal('${room.roomNo}')">
                 <div class="room-number">${room.roomNo}</div>
                 <div class="guest-info">
                     ${guestDisplay}
                 </div>
-                <div class="long-press-hint">Nhấn giữ để dọn phòng</div>
             </div>
         </div>
     `;
@@ -589,4 +442,3 @@ function showSuccessMessage(message) {
         document.body.removeChild(toast);
     });
 }
-[file content end]
