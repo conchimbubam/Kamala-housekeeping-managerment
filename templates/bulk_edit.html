@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chỉnh sửa hàng loạt - Kamala Hotel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f8f9fa; padding: 20px; }
+        .table-container { background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 20px; }
+        .sticky-header th { position: sticky; top: 0; background: #343a40; color: white; z-index: 10; }
+        .changed-row { background-color: #fff3cd !important; } /* Highlight dòng đang sửa */
+        .status-select { min-width: 100px; }
+        #loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.8); z-index: 9999;
+            display: flex; justify-content: center; align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loading-overlay">
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 fw-bold">Đang tải dữ liệu...</p>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4><i class="fas fa-edit me-2"></i>Cập nhật trạng thái phòng hàng loạt</h4>
+            <div>
+                <button class="btn btn-secondary me-2" onclick="window.close()">
+                    <i class="fas fa-times me-1"></i>Hủy & Đóng
+                </button>
+                <button class="btn btn-primary" onclick="saveChanges()">
+                    <i class="fas fa-save me-1"></i>Lưu Thay Đổi
+                </button>
+            </div>
+        </div>
+
+        <div class="table-container table-responsive" style="max-height: 85vh;">
+            <table class="table table-bordered table-hover align-middle" id="bulk-table">
+                <thead class="sticky-header">
+                    <tr>
+                        <th width="80">Phòng</th>
+                        <th width="150">Trạng thái (FO)</th>
+                        <th width="150">Tình trạng HK</th>
+                        <th>Ghi chú HK</th>
+                        <th>Ghi chú FO</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let originalData = {}; // Lưu dữ liệu gốc để so sánh
+
+        // 1. Load dữ liệu khi mở trang
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch('/api/rooms');
+                const result = await response.json();
+                
+                if (result.success) {
+                    renderTable(result.data);
+                    document.getElementById('loading-overlay').style.display = 'none';
+                } else {
+                    alert('Lỗi tải dữ liệu: ' + result.error);
+                }
+            } catch (error) {
+                alert('Lỗi kết nối: ' + error);
+            }
+        });
+
+        // 2. Render bảng
+        function renderTable(rooms) {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+
+            // Sắp xếp theo số phòng
+            rooms.sort((a, b) => a.roomNo - b.roomNo);
+
+            rooms.forEach(room => {
+                // Lưu dữ liệu gốc
+                originalData[room.roomNo] = JSON.stringify(room);
+
+                const tr = document.createElement('tr');
+                tr.dataset.room = room.roomNo;
+                
+                // Xác định màu badge
+                const statusColor = getStatusColor(room.roomStatus);
+
+                tr.innerHTML = `
+                    <td class="fw-bold text-center bg-light">${room.roomNo}</td>
+                    <td>
+                        <select class="form-select form-select-sm fw-bold ${statusColor}" 
+                                onchange="markChanged(this, '${room.roomNo}')" name="roomStatus">
+                            ${buildOptions(['VC', 'VD', 'OD', 'OC', 'OOO', 'OOS'], room.roomStatus)}
+                        </select>
+                    </td>
+                    <td>
+                        <select class="form-select form-select-sm" 
+                                onchange="markChanged(this, '${room.roomNo}')" name="housekeeping">
+                            <option value="">-- Trống --</option>
+                            ${buildOptions(['Clean', 'Dirty', 'Inspected'], room.housekeeping)}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="text" class="form-control form-control-sm" 
+                               value="${room.hk_status || ''}" 
+                               oninput="markChanged(this, '${room.roomNo}')" name="hk_status" placeholder="Ghi chú HK...">
+                    </td>
+                    <td>
+                        <input type="text" class="form-control form-control-sm" 
+                               value="${room.remark || ''}" 
+                               oninput="markChanged(this, '${room.roomNo}')" name="remark" placeholder="Ghi chú FO...">
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Helper tạo options cho select
+        function buildOptions(options, currentVal) {
+            // Xử lý status có thể có đuôi /arr (VD: VC/arr) -> lấy phần đầu
+            const baseVal = currentVal ? currentVal.split('/')[0].toUpperCase() : '';
+            
+            let html = '';
+            options.forEach(opt => {
+                const isSelected = baseVal === opt;
+                html += `<option value="${opt}" ${isSelected ? 'selected' : ''}>${opt}</option>`;
+            });
+            return html;
+        }
+
+        function getStatusColor(status) {
+            if(!status) return '';
+            if(status.toLowerCase().includes('vd')) return 'text-danger';
+            if(status.toLowerCase().includes('vc')) return 'text-success';
+            if(status.toLowerCase().includes('oc') || status.toLowerCase().includes('od')) return 'text-primary';
+            return '';
+        }
+
+        // 3. Đánh dấu dòng đã thay đổi
+        window.markChanged = function(element, roomNo) {
+            const row = element.closest('tr');
+            row.classList.add('changed-row');
+        };
+
+        // 4. Xử lý lưu
+        window.saveChanges = async function() {
+            const changedRows = document.querySelectorAll('tr.changed-row');
+            if (changedRows.length === 0) {
+                alert("Bạn chưa thay đổi thông tin nào.");
+                return;
+            }
+
+            if(!confirm(`Bạn có chắc muốn cập nhật ${changedRows.length} phòng?`)) return;
+
+            // Hiển thị loading
+            const loader = document.getElementById('loading-overlay');
+            loader.style.display = 'flex';
+            loader.querySelector('p').innerText = "Đang lưu dữ liệu...";
+
+            const updates = [];
+
+            changedRows.forEach(row => {
+                const roomNo = row.dataset.room;
+                const statusSelect = row.querySelector('select[name="roomStatus"]');
+                const hkSelect = row.querySelector('select[name="housekeeping"]');
+                const hkInput = row.querySelector('input[name="hk_status"]');
+                const remarkInput = row.querySelector('input[name="remark"]');
+
+                updates.push({
+                    roomNo: roomNo,
+                    data: {
+                        roomStatus: statusSelect.value,
+                        housekeeping: hkSelect.value,
+                        hk_status: hkInput.value,
+                        remark: remarkInput.value
+                    }
+                });
+            });
+
+            try {
+                const res = await fetch('/api/rooms/bulk-update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updates)
+                });
+                
+                const result = await res.json();
+
+                if (result.success) {
+                    alert("Cập nhật thành công!");
+                    // Refresh trang cha (Dashboard) nếu còn mở
+                    if (window.opener && !window.opener.closed) {
+                        window.opener.location.reload();
+                    }
+                    // Đóng trang này
+                    window.close();
+                } else {
+                    alert("Có lỗi xảy ra: " + result.error);
+                    loader.style.display = 'none';
+                }
+            } catch (e) {
+                alert("Lỗi hệ thống: " + e);
+                loader.style.display = 'none';
+            }
+        };
+    </script>
+</body>
+</html>
