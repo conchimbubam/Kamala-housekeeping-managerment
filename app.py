@@ -147,7 +147,13 @@ def create_app():
         except Exception as e:
             logger.error(f"Lỗi khi tạo tasksheet: {e}")
             return render_template('error.html', error="Lỗi khi tạo tasksheet"), 500
-
+    @app.route('/bulk-edit')
+    @login_required
+    @fo_required
+    def bulk_edit():
+        """Trang chỉnh sửa hàng loạt dành cho FO"""
+        user_info = session.get('user_info', {})
+        return render_template('bulk_edit.html', user=user_info)
     # ==================== API ENDPOINTS ====================
 
     @app.route('/api/user-info')
