@@ -3,636 +3,810 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chỉnh sửa hàng loạt - Kamala Housekeeping</title>
+    <title>Chỉnh sửa hàng loạt - Kamala Housekeeping Management System</title>
     
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
     <style>
         body {
             background-color: #f8f9fa;
             padding: 20px;
         }
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        
+        .bulk-header {
+            background: linear-gradient(135deg, #2c3e50, #4a6491);
             color: white;
-            padding: 20px;
-            border-radius: 10px;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .bulk-controls {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             margin-bottom: 20px;
         }
-        .table-container {
+        
+        .room-table-container {
             background: white;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            border-radius: 8px;
             overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
         }
-        .table thead th {
-            background-color: #2c3e50;
+        
+        .room-table {
+            margin: 0;
+            width: 100%;
+        }
+        
+        .room-table thead th {
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .room-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .room-table td, .room-table th {
+            vertical-align: middle;
+            padding: 12px 8px;
+        }
+        
+        .checkbox-cell {
+            width: 40px;
+            text-align: center;
+        }
+        
+        .room-number-cell {
+            width: 80px;
+            font-weight: bold;
+            background-color: #f8f9fa;
+        }
+        
+        .status-cell, .arr-cell {
+            width: 100px;
+        }
+        
+        .guest-cell {
+            min-width: 200px;
+        }
+        
+        .form-control-sm {
+            height: calc(1.5em + 0.5rem + 2px);
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .form-select-sm {
+            padding: 0.25rem 2rem 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .badge-fo {
+            background-color: #0d6efd;
+            color: white;
+        }
+        
+        .badge-hk {
+            background-color: #198754;
+            color: white;
+        }
+        
+        .btn-apply-bulk {
+            background: linear-gradient(135deg, #0d6efd, #0b5ed7);
             color: white;
             border: none;
-            padding: 15px;
-            font-weight: 600;
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-weight: 500;
         }
-        .table tbody td {
-            padding: 12px;
-            vertical-align: middle;
-            border-color: #e9ecef;
-        }
-        .room-checkbox {
-            transform: scale(1.2);
-        }
-        .status-badge {
-            font-size: 0.75em;
-            padding: 4px 8px;
-        }
-        .guest-info input {
-            font-size: 0.85em;
-        }
-        .arr-toggle {
-            transform: scale(1.3);
-        }
-        .action-buttons {
-            position: sticky;
-            bottom: 0;
-            background: white;
-            padding: 15px;
-            border-top: 2px solid #e9ecef;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-        }
-        .selected-count {
-            background: #e74c3c;
+        
+        .btn-apply-bulk:hover {
+            background: linear-gradient(135deg, #0b5ed7, #0a58ca);
             color: white;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-weight: bold;
         }
-        .filter-section {
-            background: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        
+        .form-check-input:checked {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
         }
+        
+        .scrollable-container {
+            max-height: 70vh;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+        }
+        
         .loading-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.7);
+            background: rgba(255, 255, 255, 0.9);
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 9999;
-            color: white;
-            font-size: 1.2em;
+        }
+        
+        .action-buttons {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .disabled-field {
+            background-color: #e9ecef;
+            opacity: 0.6;
+            cursor: not-allowed;
         }
     </style>
 </head>
 <body>
-    <div class="container-fluid">
-        <!-- Header -->
-        <div class="header">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <h1><i class="fas fa-edit me-2"></i>Chỉnh sửa hàng loạt</h1>
-                    <p class="mb-0">Cập nhật nhanh thông tin phòng - Front Office</p>
-                </div>
-                <div class="col-md-6 text-end">
-                    <a href="/" class="btn btn-light me-2">
+    <!-- Header -->
+    <div class="bulk-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h4 mb-1">
+                    <i class="fas fa-edit me-2"></i>Chỉnh sửa hàng loạt
+                </h1>
+                <p class="mb-0">Cập nhật nhanh tình trạng phòng cho nhiều phòng cùng lúc</p>
+            </div>
+            <div class="text-end">
+                <div class="d-flex align-items-center">
+                    {% if user %}
+                    <div class="me-3">
+                        <small>FO: <strong>{{ user.name }}</strong></small>
+                    </div>
+                    {% endif %}
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-light btn-sm">
                         <i class="fas fa-arrow-left me-1"></i>Về Dashboard
                     </a>
-                    <span id="selectedCount" class="selected-count">0 phòng đã chọn</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Filter Section -->
-        <div class="filter-section">
-            <div class="row g-3 align-items-center">
-                <div class="col-auto">
-                    <label class="form-label fw-bold">Lọc nhanh:</label>
-                </div>
-                <div class="col-auto">
-                    <button class="btn btn-outline-primary btn-sm" onclick="selectAllRooms()">
-                        <i class="fas fa-check-double me-1"></i>Chọn tất cả
-                    </button>
-                </div>
-                <div class="col-auto">
-                    <button class="btn btn-outline-secondary btn-sm" onclick="deselectAllRooms()">
-                        <i class="fas fa-times me-1"></i>Bỏ chọn tất cả
-                    </button>
-                </div>
-                <div class="col-auto">
-                    <select class="form-select form-select-sm" id="floorFilter" onchange="filterByFloor()">
-                        <option value="">Tất cả các tầng</option>
-                    </select>
-                </div>
-                <div class="col-auto">
-                    <select class="form-select form-select-sm" id="statusFilter" onchange="filterByStatus()">
-                        <option value="">Tất cả trạng thái</option>
-                        <option value="vd">Vacant Dirty</option>
-                        <option value="vc">Vacant Clean</option>
-                        <option value="od">Occupied Dirty</option>
-                        <option value="oc">Occupied Clean</option>
-                        <option value="dnd">Do Not Disturb</option>
-                        <option value="nn">No News</option>
-                        <option value="lock">Lock</option>
-                        <option value="ip">Inspected</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-
-        <!-- Table Container -->
-        <div class="table-container">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead>
-                        <tr>
-                            <th width="50">
-                                <input type="checkbox" class="form-check-input room-checkbox" id="selectAll" onchange="toggleSelectAll(this)">
-                            </th>
-                            <th width="100">Số phòng</th>
-                            <th width="150">Tình trạng FO</th>
-                            <th width="150">Tình trạng HK</th>
-                            <th>Khách hiện tại</th>
-                            <th width="120">ARR</th>
-                            <th>Khách mới</th>
-                            <th width="100">Thao tác</th>
-                        </tr>
-                    </thead>
-                    <tbody id="roomsTableBody">
-                        <!-- Rooms will be populated by JavaScript -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Loading Message -->
-        <div id="loadingMessage" class="text-center py-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Đang tải...</span>
-            </div>
-            <p class="mt-2">Đang tải dữ liệu phòng...</p>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="action-buttons">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <strong id="totalSelected">0 phòng</strong> được chọn
-                </div>
-                <div class="col-md-6 text-end">
-                    <button class="btn btn-success me-2" onclick="applyBulkChanges()" id="applyBtn" disabled>
-                        <i class="fas fa-check me-1"></i>Áp dụng thay đổi
-                    </button>
-                    <button class="btn btn-secondary" onclick="resetAllChanges()">
-                        <i class="fas fa-undo me-1"></i>Đặt lại
-                    </button>
                 </div>
             </div>
         </div>
     </div>
-
+    
+    <!-- Bulk Controls -->
+    <div class="bulk-controls">
+        <h5 class="mb-3">
+            <i class="fas fa-sliders-h me-2"></i>Điều chỉnh hàng loạt
+        </h5>
+        
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Tình trạng FO</label>
+                <select class="form-select form-select-sm bulk-fo-status">
+                    <option value="">-- Chọn tình trạng FO --</option>
+                    <option value="vd">Vacant (Trống)</option>
+                    <option value="od">Occupied (Có khách)</option>
+                    <option value="lock">Lock (Khóa)</option>
+                </select>
+            </div>
+            
+            <div class="col-md-3">
+                <label class="form-label">Tình trạng HK</label>
+                <select class="form-select form-select-sm bulk-hk-status">
+                    <option value="">-- Chọn tình trạng HK --</option>
+                    <option value="dirty">Dirty (Bẩn)</option>
+                    <option value="clean">Clean (Sạch)</option>
+                    <option value="inspected">Inspected (Đã kiểm)</option>
+                    <option value="dnd">DND (Không làm phiền)</option>
+                    <option value="nn">NN (Không dọn)</option>
+                </select>
+            </div>
+            
+            <div class="col-md-2">
+                <div class="form-check mt-4 pt-2">
+                    <input class="form-check-input bulk-arr-check" type="checkbox" id="bulkArrCheck">
+                    <label class="form-check-label" for="bulkArrCheck">
+                        <strong>ARR</strong> (Có khách đến)
+                    </label>
+                </div>
+            </div>
+            
+            <div class="col-md-4 text-end">
+                <div class="d-grid">
+                    <button type="button" class="btn btn-apply-bulk" onclick="applyBulkChanges()">
+                        <i class="fas fa-check-circle me-2"></i>Áp dụng cho phòng đã chọn
+                    </button>
+                    <small class="text-muted mt-1">Áp dụng thay đổi cho tất cả phòng được chọn</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Room Table -->
+    <div class="room-table-container">
+        <div class="scrollable-container">
+            <table class="room-table">
+                <thead>
+                    <tr>
+                        <th class="checkbox-cell">
+                            <input type="checkbox" class="form-check-input" id="selectAllRooms">
+                        </th>
+                        <th class="room-number-cell">Phòng</th>
+                        <th class="status-cell">Tình trạng FO</th>
+                        <th class="status-cell">Tình trạng HK</th>
+                        <th class="guest-cell">Khách hiện tại</th>
+                        <th class="arr-cell">ARR</th>
+                        <th class="guest-cell">Khách mới (ARR)</th>
+                    </tr>
+                </thead>
+                <tbody id="roomsTableBody">
+                    <!-- Rows will be populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="d-flex align-items-center">
+                    <span id="selectedCount" class="badge bg-primary me-3">0 phòng được chọn</span>
+                    <button type="button" class="btn btn-success btn-sm me-2" onclick="saveAllChanges()">
+                        <i class="fas fa-save me-1"></i>Lưu tất cả thay đổi
+                    </button>
+                    <button type="button" class="btn btn-warning btn-sm" onclick="loadRooms()">
+                        <i class="fas fa-redo me-1"></i>Tải lại dữ liệu
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-6 text-end">
+                <button type="button" class="btn btn-primary btn-sm me-2" onclick="showHelp()">
+                    <i class="fas fa-question-circle me-1"></i>Hướng dẫn
+                </button>
+                <button type="button" class="btn btn-danger btn-sm" onclick="window.close()">
+                    <i class="fas fa-times me-1"></i>Đóng tab
+                </button>
+            </div>
+        </div>
+    </div>
+    
     <!-- Loading Overlay -->
-    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
-        <div class="text-center">
-            <div class="spinner-border text-light mb-3" style="width: 3rem; height: 3rem;"></div>
-            <h4>Đang xử lý...</h4>
-            <p>Vui lòng chờ trong giây lát</p>
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+            <span class="visually-hidden">Đang tải...</span>
+        </div>
+        <p class="mt-3" id="loadingText">Đang tải dữ liệu phòng...</p>
+    </div>
+    
+    <!-- Success Toast -->
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 1050">
+        <div id="successToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-check-circle me-2"></i><span id="toastMessage"></span>
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
         </div>
     </div>
-
+    
     <!-- JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     
     <script>
+        // Global variables
         let allRooms = [];
-        let selectedRooms = new Set();
-        let roomChanges = new Map(); // Lưu thay đổi của từng phòng
-
-        // Load data khi trang được tải
+        let modifiedRooms = new Set();
+        
+        // DOM Content Loaded
         document.addEventListener('DOMContentLoaded', function() {
-            loadRoomsData();
+            loadRooms();
+            setupEventListeners();
         });
-
-        // Tải dữ liệu phòng từ API
-        async function loadRoomsData() {
+        
+        // Event Listeners
+        function setupEventListeners() {
+            // Select all rooms checkbox
+            document.getElementById('selectAllRooms').addEventListener('change', function() {
+                const checkboxes = document.querySelectorAll('.room-checkbox');
+                checkboxes.forEach(cb => cb.checked = this.checked);
+                updateSelectedCount();
+            });
+            
+            // Bulk ARR checkbox
+            document.querySelector('.bulk-arr-check').addEventListener('change', function() {
+                const isChecked = this.checked;
+                const selectedRooms = getSelectedRooms();
+                
+                selectedRooms.forEach(roomId => {
+                    const arrCheckbox = document.getElementById(`arr-${roomId}`);
+                    if (arrCheckbox) {
+                        arrCheckbox.checked = isChecked;
+                        toggleArrFields(roomId, isChecked);
+                    }
+                });
+            });
+            
+            // Bulk FO status change
+            document.querySelector('.bulk-fo-status').addEventListener('change', function() {
+                const selectedRooms = getSelectedRooms();
+                const value = this.value;
+                
+                selectedRooms.forEach(roomId => {
+                    const foSelect = document.getElementById(`fo-${roomId}`);
+                    if (foSelect) {
+                        foSelect.value = value;
+                        markRoomModified(roomId);
+                    }
+                });
+            });
+            
+            // Bulk HK status change
+            document.querySelector('.bulk-hk-status').addEventListener('change', function() {
+                const selectedRooms = getSelectedRooms();
+                const value = this.value;
+                
+                selectedRooms.forEach(roomId => {
+                    const hkSelect = document.getElementById(`hk-${roomId}`);
+                    if (hkSelect) {
+                        hkSelect.value = value;
+                        markRoomModified(roomId);
+                    }
+                });
+            });
+        }
+        
+        // Load rooms from API
+        async function loadRooms() {
+            showLoading('Đang tải dữ liệu phòng...');
+            
             try {
                 const response = await fetch('/api/rooms');
                 const data = await response.json();
                 
                 if (data.success) {
                     allRooms = data.data;
-                    displayRoomsTable();
-                    populateFloorFilter();
-                    document.getElementById('loadingMessage').style.display = 'none';
+                    displayRoomsTable(allRooms);
+                    hideLoading();
                 } else {
                     throw new Error(data.error || 'Không thể tải dữ liệu');
                 }
             } catch (error) {
                 console.error('Error loading rooms:', error);
-                document.getElementById('loadingMessage').innerHTML = `
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        Không thể tải dữ liệu: ${error.message}
-                        <button class="btn btn-sm btn-outline-danger ms-2" onclick="loadRoomsData()">Thử lại</button>
-                    </div>
-                `;
+                showError('Không thể tải dữ liệu phòng: ' + error.message);
+                hideLoading();
             }
         }
-
-        // Hiển thị bảng phòng
-        function displayRoomsTable() {
+        
+        // Display rooms in table
+        function displayRoomsTable(rooms) {
             const tbody = document.getElementById('roomsTableBody');
             tbody.innerHTML = '';
-
-            allRooms.forEach(room => {
-                const isSelected = selectedRooms.has(room.roomNo);
-                const hasChanges = roomChanges.has(room.roomNo);
-                
-                const row = document.createElement('tr');
-                if (isSelected) row.classList.add('table-primary');
-                if (hasChanges) row.classList.add('table-warning');
-                
-                row.innerHTML = `
-                    <td>
-                        <input type="checkbox" class="form-check-input room-checkbox" 
-                               ${isSelected ? 'checked' : ''}
-                               onchange="toggleRoomSelection('${room.roomNo}', this)">
-                    </td>
-                    <td>
-                        <strong>${room.roomNo}</strong>
-                        ${hasChanges ? '<i class="fas fa-edit text-warning ms-1"></i>' : ''}
-                    </td>
-                    <td>
-                        <select class="form-select form-select-sm" onchange="updateRoomChange('${room.roomNo}', 'roomStatus', this.value)">
-                            <option value="vd" ${room.roomStatus === 'vd' ? 'selected' : ''}>Vacant Dirty</option>
-                            <option value="vc" ${room.roomStatus === 'vc' ? 'selected' : ''}>Vacant Clean</option>
-                            <option value="od" ${room.roomStatus === 'od' ? 'selected' : ''}>Occupied Dirty</option>
-                            <option value="oc" ${room.roomStatus === 'oc' ? 'selected' : ''}>Occupied Clean</option>
-                            <option value="dnd" ${room.roomStatus === 'dnd' ? 'selected' : ''}>Do Not Disturb</option>
-                            <option value="nn" ${room.roomStatus === 'nn' ? 'selected' : ''}>No News</option>
-                            <option value="lock" ${room.roomStatus === 'lock' ? 'selected' : ''}>Lock</option>
-                            <option value="ip" ${room.roomStatus === 'ip' ? 'selected' : ''}>Inspected</option>
-                        </select>
-                    </td>
-                    <td>
-                        <span class="badge ${getStatusBadgeClass(room.roomStatus)} status-badge">
-                            ${getStatusDisplayName(room.roomStatus)}
-                        </span>
-                    </td>
-                    <td>
-                        <div class="guest-info">
-                            <input type="text" class="form-control form-control-sm mb-1" 
-                                   placeholder="Tên khách" value="${room.currentGuest?.name || ''}"
-                                   onchange="updateRoomChange('${room.roomNo}', 'currentGuest.name', this.value)">
-                            <div class="row g-1">
-                                <div class="col-6">
-                                    <input type="date" class="form-control form-control-sm" 
-                                           value="${formatDateForInput(room.currentGuest?.checkIn)}"
-                                           onchange="updateRoomChange('${room.roomNo}', 'currentGuest.checkIn', this.value)">
-                                </div>
-                                <div class="col-6">
-                                    <input type="date" class="form-control form-control-sm" 
-                                           value="${formatDateForInput(room.currentGuest?.checkOut)}"
-                                           onchange="updateRoomChange('${room.roomNo}', 'currentGuest.checkOut', this.value)">
-                                </div>
-                            </div>
-                            <input type="number" class="form-control form-control-sm mt-1" 
-                                   placeholder="Số khách" value="${room.currentGuest?.pax || ''}"
-                                   onchange="updateRoomChange('${room.roomNo}', 'currentGuest.pax', this.value)">
-                        </div>
-                    </td>
-                    <td class="text-center">
-                        <input type="checkbox" class="form-check-input arr-toggle" 
-                               ${room.roomStatus.includes('/arr') ? 'checked' : ''}
-                               onchange="toggleARR('${room.roomNo}', this)">
-                    </td>
-                    <td>
-                        <div class="guest-info">
-                            <input type="text" class="form-control form-control-sm mb-1 ${room.roomStatus.includes('/arr') ? '' : 'bg-light'}" 
-                                   placeholder="Tên khách mới" value="${room.newGuest?.name || ''}"
-                                   ${room.roomStatus.includes('/arr') ? '' : 'disabled'}
-                                   onchange="updateRoomChange('${room.roomNo}', 'newGuest.name', this.value)">
-                            <div class="row g-1">
-                                <div class="col-6">
-                                    <input type="date" class="form-control form-control-sm ${room.roomStatus.includes('/arr') ? '' : 'bg-light'}" 
-                                           value="${formatDateForInput(room.newGuest?.checkIn)}"
-                                           ${room.roomStatus.includes('/arr') ? '' : 'disabled'}
-                                           onchange="updateRoomChange('${room.roomNo}', 'newGuest.checkIn', this.value)">
-                                </div>
-                                <div class="col-6">
-                                    <input type="date" class="form-control form-control-sm ${room.roomStatus.includes('/arr') ? '' : 'bg-light'}" 
-                                           value="${formatDateForInput(room.newGuest?.checkOut)}"
-                                           ${room.roomStatus.includes('/arr') ? '' : 'disabled'}
-                                           onchange="updateRoomChange('${room.roomNo}', 'newGuest.checkOut', this.value)">
-                                </div>
-                            </div>
-                            <input type="number" class="form-control form-control-sm mt-1 ${room.roomStatus.includes('/arr') ? '' : 'bg-light'}" 
-                                   placeholder="Số khách" value="${room.newGuest?.pax || ''}"
-                                   ${room.roomStatus.includes('/arr') ? '' : 'disabled'}
-                                   onchange="updateRoomChange('${room.roomNo}', 'newGuest.pax', this.value)">
-                        </div>
-                    </td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary" onclick="applySingleRoom('${room.roomNo}')">
-                            <i class="fas fa-check"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-secondary ms-1" onclick="resetSingleRoom('${room.roomNo}')">
-                            <i class="fas fa-undo"></i>
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(row);
+            
+            rooms.forEach(room => {
+                const row = createRoomRow(room);
+                tbody.innerHTML += row;
             });
-
-            updateSelectionCount();
-        }
-
-        // Các hàm utility
-        function getStatusBadgeClass(status) {
-            const statusClasses = {
-                'vd': 'bg-secondary',
-                'vc': 'bg-success',
-                'od': 'bg-warning text-dark',
-                'oc': 'bg-info text-dark',
-                'dnd': 'bg-dark',
-                'nn': 'bg-danger',
-                'lock': 'bg-dark',
-                'ip': 'bg-primary',
-                'vd/arr': 'bg-secondary',
-                'vc/arr': 'bg-success',
-                'do/arr': 'bg-warning text-dark'
-            };
-            return statusClasses[status] || 'bg-secondary';
-        }
-
-        function getStatusDisplayName(status) {
-            const statusNames = {
-                'vd': 'Vacant Dirty',
-                'vc': 'Vacant Clean',
-                'od': 'Occupied Dirty',
-                'oc': 'Occupied Clean',
-                'dnd': 'Do Not Disturb',
-                'nn': 'No News',
-                'lock': 'Lock',
-                'ip': 'Inspected',
-                'vd/arr': 'VD + ARR',
-                'vc/arr': 'VC + ARR',
-                'do/arr': 'DO + ARR'
-            };
-            return statusNames[status] || status;
-        }
-
-        function formatDateForInput(dateStr) {
-            if (!dateStr || dateStr === '00-01-00') return '';
-            // Chuyển từ dd-mm-yy sang yyyy-mm-dd
-            const parts = dateStr.split('-');
-            if (parts.length === 3) {
-                const day = parts[0];
-                const month = parts[1];
-                const year = '20' + parts[2]; // Giả sử năm 2000+
-                return `${year}-${month}-${day}`;
-            }
-            return '';
-        }
-
-        // Quản lý selection
-        function toggleSelectAll(checkbox) {
-            if (checkbox.checked) {
-                selectAllRooms();
-            } else {
-                deselectAllRooms();
-            }
-        }
-
-        function selectAllRooms() {
-            allRooms.forEach(room => {
-                selectedRooms.add(room.roomNo);
-            });
-            document.getElementById('selectAll').checked = true;
-            displayRoomsTable();
-        }
-
-        function deselectAllRooms() {
-            selectedRooms.clear();
-            document.getElementById('selectAll').checked = false;
-            displayRoomsTable();
-        }
-
-        function toggleRoomSelection(roomNo, checkbox) {
-            if (checkbox.checked) {
-                selectedRooms.add(roomNo);
-            } else {
-                selectedRooms.delete(roomNo);
-            }
-            updateSelectionCount();
-            displayRoomsTable();
-        }
-
-        function updateSelectionCount() {
-            const count = selectedRooms.size;
-            document.getElementById('selectedCount').textContent = `${count} phòng đã chọn`;
-            document.getElementById('totalSelected').textContent = `${count} phòng`;
-            document.getElementById('applyBtn').disabled = count === 0;
-        }
-
-        // Quản lý thay đổi
-        function updateRoomChange(roomNo, field, value) {
-            if (!roomChanges.has(roomNo)) {
-                roomChanges.set(roomNo, {});
-            }
-            const changes = roomChanges.get(roomNo);
             
-            // Xử lý nested fields (vd: currentGuest.name)
-            const fieldParts = field.split('.');
-            let current = changes;
-            for (let i = 0; i < fieldParts.length - 1; i++) {
-                if (!current[fieldParts[i]]) {
-                    current[fieldParts[i]] = {};
-                }
-                current = current[fieldParts[i]];
-            }
-            current[fieldParts[fieldParts.length - 1]] = value;
-            
-            displayRoomsTable();
-        }
-
-        function toggleARR(roomNo, checkbox) {
-            const currentStatus = allRooms.find(r => r.roomNo === roomNo)?.roomStatus || 'vd';
-            let newStatus = currentStatus.replace('/arr', '');
-            
-            if (checkbox.checked) {
-                newStatus += '/arr';
-            }
-            
-            updateRoomChange(roomNo, 'roomStatus', newStatus);
-            
-            // Enable/disable new guest fields
-            const row = checkbox.closest('tr');
-            const newGuestInputs = row.querySelectorAll('td:nth-child(7) input');
-            newGuestInputs.forEach(input => {
-                input.disabled = !checkbox.checked;
-                input.classList.toggle('bg-light', !checkbox.checked);
-            });
-        }
-
-        // Áp dụng thay đổi
-        async function applyBulkChanges() {
-            if (selectedRooms.size === 0) {
-                alert('Vui lòng chọn ít nhất một phòng');
-                return;
-            }
-
-            const changesToApply = [];
-            selectedRooms.forEach(roomNo => {
-                if (roomChanges.has(roomNo)) {
-                    changesToApply.push({
-                        roomNo: roomNo,
-                        changes: roomChanges.get(roomNo)
+            // Add event listeners to ARR checkboxes
+            rooms.forEach(room => {
+                const arrCheckbox = document.getElementById(`arr-${room.roomNo}`);
+                if (arrCheckbox) {
+                    arrCheckbox.addEventListener('change', function() {
+                        toggleArrFields(room.roomNo, this.checked);
                     });
                 }
+                
+                // Add event listeners to checkboxes
+                const roomCheckbox = document.getElementById(`room-${room.roomNo}`);
+                if (roomCheckbox) {
+                    roomCheckbox.addEventListener('change', updateSelectedCount);
+                }
+                
+                // Add event listeners to FO/HK selects
+                const foSelect = document.getElementById(`fo-${room.roomNo}`);
+                const hkSelect = document.getElementById(`hk-${room.roomNo}`);
+                if (foSelect) {
+                    foSelect.addEventListener('change', () => markRoomModified(room.roomNo));
+                }
+                if (hkSelect) {
+                    hkSelect.addEventListener('change', () => markRoomModified(room.roomNo));
+                }
+                
+                // Add event listeners to guest info inputs
+                ['new-name', 'new-checkin', 'new-checkout', 'new-pax'].forEach(field => {
+                    const input = document.getElementById(`${field}-${room.roomNo}`);
+                    if (input) {
+                        input.addEventListener('change', () => markRoomModified(room.roomNo));
+                    }
+                });
             });
-
-            if (changesToApply.length === 0) {
-                alert('Không có thay đổi nào để áp dụng');
+            
+            updateSelectedCount();
+        }
+        
+        // Create room row HTML
+        function createRoomRow(room) {
+            const roomNo = room.roomNo;
+            const currentStatus = room.roomStatus;
+            
+            // Parse current guest info
+            const currentGuest = room.currentGuest || {};
+            const newGuest = room.newGuest || {};
+            
+            // Determine FO and HK status from roomStatus
+            const { foStatus, hkStatus } = parseRoomStatus(currentStatus);
+            
+            // Check if has ARR (arrival)
+            const hasArr = currentStatus.includes('/arr') || newGuest.name;
+            
+            return `
+                <tr id="row-${roomNo}">
+                    <td class="checkbox-cell">
+                        <input type="checkbox" class="form-check-input room-checkbox" id="room-${roomNo}">
+                    </td>
+                    <td class="room-number-cell">
+                        <span class="badge bg-dark">${roomNo}</span>
+                    </td>
+                    <td class="status-cell">
+                        <select class="form-select form-select-sm" id="fo-${roomNo}">
+                            <option value="vd" ${foStatus === 'vd' ? 'selected' : ''}>Vacant</option>
+                            <option value="od" ${foStatus === 'od' ? 'selected' : ''}>Occupied</option>
+                            <option value="lock" ${foStatus === 'lock' ? 'selected' : ''}>Lock</option>
+                        </select>
+                    </td>
+                    <td class="status-cell">
+                        <select class="form-select form-select-sm" id="hk-${roomNo}">
+                            <option value="">-- Chọn --</option>
+                            <option value="dirty" ${hkStatus === 'dirty' ? 'selected' : ''}>Dirty</option>
+                            <option value="clean" ${hkStatus === 'clean' ? 'selected' : ''}>Clean</option>
+                            <option value="inspected" ${hkStatus === 'inspected' ? 'selected' : ''}>Inspected</option>
+                            <option value="dnd" ${hkStatus === 'dnd' ? 'selected' : ''}>DND</option>
+                            <option value="nn" ${hkStatus === 'nn' ? 'selected' : ''}>NN</option>
+                        </select>
+                    </td>
+                    <td class="guest-cell">
+                        <div class="small">
+                            <div><strong>${currentGuest.name || 'Trống'}</strong></div>
+                            <div>CI: ${currentGuest.checkIn || '-'}</div>
+                            <div>CO: ${currentGuest.checkOut || '-'}</div>
+                            <div>${currentGuest.pax || '0'} khách</div>
+                        </div>
+                    </td>
+                    <td class="arr-cell">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="arr-${roomNo}" ${hasArr ? 'checked' : ''}>
+                            <label class="form-check-label" for="arr-${roomNo}">
+                                <span class="badge bg-warning text-dark">ARR</span>
+                            </label>
+                        </div>
+                    </td>
+                    <td class="guest-cell">
+                        <div class="row g-1">
+                            <div class="col-12">
+                                <input type="text" class="form-control form-control-sm" 
+                                       id="new-name-${roomNo}" 
+                                       placeholder="Tên khách mới"
+                                       value="${newGuest.name || ''}"
+                                       ${hasArr ? '' : 'disabled'}>
+                            </div>
+                            <div class="col-6">
+                                <input type="date" class="form-control form-control-sm" 
+                                       id="new-checkin-${roomNo}" 
+                                       value="${newGuest.checkIn || ''}"
+                                       ${hasArr ? '' : 'disabled'}>
+                            </div>
+                            <div class="col-6">
+                                <input type="date" class="form-control form-control-sm" 
+                                       id="new-checkout-${roomNo}" 
+                                       value="${newGuest.checkOut || ''}"
+                                       ${hasArr ? '' : 'disabled'}>
+                            </div>
+                            <div class="col-12">
+                                <input type="number" class="form-control form-control-sm" 
+                                       id="new-pax-${roomNo}" 
+                                       placeholder="Số khách"
+                                       min="1" max="10"
+                                       value="${newGuest.pax || ''}"
+                                       ${hasArr ? '' : 'disabled'}>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+        
+        // Parse room status into FO and HK components
+        function parseRoomStatus(status) {
+            let foStatus = '';
+            let hkStatus = '';
+            
+            if (status === 'lock') {
+                foStatus = 'lock';
+                hkStatus = '';
+            } else if (status === 'ip') {
+                foStatus = '';
+                hkStatus = 'inspected';
+            } else if (status === 'vd' || status === 'vd/arr') {
+                foStatus = 'vd';
+                hkStatus = 'dirty';
+            } else if (status === 'vc' || status === 'vc/arr') {
+                foStatus = 'vd';
+                hkStatus = 'clean';
+            } else if (status === 'od' || status === 'do' || status === 'do/arr') {
+                foStatus = 'od';
+                hkStatus = 'dirty';
+            } else if (status === 'oc') {
+                foStatus = 'od';
+                hkStatus = 'clean';
+            } else if (status === 'dnd') {
+                foStatus = 'od';
+                hkStatus = 'dnd';
+            } else if (status === 'nn') {
+                foStatus = 'od';
+                hkStatus = 'nn';
+            }
+            
+            return { foStatus, hkStatus };
+        }
+        
+        // Toggle ARR fields
+        function toggleArrFields(roomNo, enabled) {
+            const fields = [
+                `new-name-${roomNo}`,
+                `new-checkin-${roomNo}`,
+                `new-checkout-${roomNo}`,
+                `new-pax-${roomNo}`
+            ];
+            
+            fields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    field.disabled = !enabled;
+                    if (enabled) {
+                        field.classList.remove('disabled-field');
+                    } else {
+                        field.classList.add('disabled-field');
+                    }
+                }
+            });
+            
+            markRoomModified(roomNo);
+        }
+        
+        // Apply bulk changes to selected rooms
+        function applyBulkChanges() {
+            const selectedRooms = getSelectedRooms();
+            if (selectedRooms.length === 0) {
+                showToast('Vui lòng chọn ít nhất một phòng', 'warning');
                 return;
             }
-
-            if (!confirm(`Bạn có chắc muốn áp dụng thay đổi cho ${changesToApply.length} phòng?`)) {
+            
+            const bulkFoStatus = document.querySelector('.bulk-fo-status').value;
+            const bulkHkStatus = document.querySelector('.bulk-hk-status').value;
+            const bulkArr = document.querySelector('.bulk-arr-check').checked;
+            
+            selectedRooms.forEach(roomId => {
+                if (bulkFoStatus) {
+                    const foSelect = document.getElementById(`fo-${roomId}`);
+                    if (foSelect) {
+                        foSelect.value = bulkFoStatus;
+                    }
+                }
+                
+                if (bulkHkStatus) {
+                    const hkSelect = document.getElementById(`hk-${roomId}`);
+                    if (hkSelect) {
+                        hkSelect.value = bulkHkStatus;
+                    }
+                }
+                
+                if (bulkArr !== undefined) {
+                    const arrCheckbox = document.getElementById(`arr-${roomId}`);
+                    if (arrCheckbox) {
+                        arrCheckbox.checked = bulkArr;
+                        toggleArrFields(roomId, bulkArr);
+                    }
+                }
+                
+                markRoomModified(roomId);
+            });
+            
+            showToast(`Đã áp dụng thay đổi cho ${selectedRooms.length} phòng`, 'success');
+        }
+        
+        // Save all changes
+        async function saveAllChanges() {
+            if (modifiedRooms.size === 0) {
+                showToast('Không có thay đổi nào để lưu', 'info');
                 return;
             }
-
-            showLoadingOverlay();
-
+            
+            showLoading('Đang lưu thay đổi...');
+            
             try {
-                const promises = changesToApply.map(async ({ roomNo, changes }) => {
-                    const response = await fetch('/api/rooms/update', {
+                const updates = [];
+                
+                modifiedRooms.forEach(roomNo => {
+                    const roomData = collectRoomData(roomNo);
+                    if (roomData) {
+                        updates.push(roomData);
+                    }
+                });
+                
+                // Send updates to server
+                const promises = updates.map(update => 
+                    fetch('/api/rooms/update', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({
-                            roomNo: roomNo,
-                            updatedData: changes
-                        })
-                    });
-                    return response.json();
-                });
-
-                const results = await Promise.all(promises);
-                const successCount = results.filter(result => result.success).length;
-
-                hideLoadingOverlay();
-                
-                if (successCount === results.length) {
-                    alert(`✅ Đã cập nhật thành công ${successCount} phòng`);
-                    // Reset và reload data
-                    roomChanges.clear();
-                    selectedRooms.clear();
-                    await loadRoomsData();
-                } else {
-                    alert(`⚠️ Đã cập nhật ${successCount}/${results.length} phòng. Một số phòng có thể chưa được cập nhật.`);
-                }
-            } catch (error) {
-                hideLoadingOverlay();
-                alert('❌ Có lỗi xảy ra khi cập nhật: ' + error.message);
-            }
-        }
-
-        async function applySingleRoom(roomNo) {
-            if (!roomChanges.has(roomNo)) {
-                alert('Không có thay đổi nào cho phòng này');
-                return;
-            }
-
-            showLoadingOverlay();
-
-            try {
-                const changes = roomChanges.get(roomNo);
-                const response = await fetch('/api/rooms/update', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        roomNo: roomNo,
-                        updatedData: changes
+                        body: JSON.stringify(update)
                     })
-                });
-
-                const result = await response.json();
-                hideLoadingOverlay();
-
-                if (result.success) {
-                    alert('✅ Đã cập nhật phòng thành công');
-                    roomChanges.delete(roomNo);
-                    await loadRoomsData();
-                } else {
-                    alert('❌ Lỗi: ' + result.error);
+                );
+                
+                const results = await Promise.allSettled(promises);
+                
+                let successCount = 0;
+                let errorCount = 0;
+                
+                for (let i = 0; i < results.length; i++) {
+                    if (results[i].status === 'fulfilled') {
+                        const response = await results[i].value.json();
+                        if (response.success) {
+                            successCount++;
+                        } else {
+                            errorCount++;
+                        }
+                    } else {
+                        errorCount++;
+                    }
                 }
+                
+                hideLoading();
+                
+                if (errorCount === 0) {
+                    showToast(`Đã lưu thành công ${successCount} phòng`, 'success');
+                    modifiedRooms.clear();
+                    loadRooms(); // Reload data
+                } else {
+                    showToast(`Lưu ${successCount} phòng thành công, ${errorCount} phòng thất bại`, 'warning');
+                }
+                
             } catch (error) {
-                hideLoadingOverlay();
-                alert('❌ Có lỗi xảy ra: ' + error.message);
+                console.error('Error saving changes:', error);
+                hideLoading();
+                showToast('Lỗi khi lưu thay đổi: ' + error.message, 'danger');
             }
         }
-
-        // Reset functions
-        function resetAllChanges() {
-            if (confirm('Bạn có chắc muốn hủy tất cả thay đổi?')) {
-                roomChanges.clear();
-                selectedRooms.clear();
-                document.getElementById('selectAll').checked = false;
-                loadRoomsData();
+        
+        // Collect room data for update
+        function collectRoomData(roomNo) {
+            const foStatus = document.getElementById(`fo-${roomNo}`).value;
+            const hkStatus = document.getElementById(`hk-${roomNo}`).value;
+            const hasArr = document.getElementById(`arr-${roomNo}`).checked;
+            
+            // Build final roomStatus
+            let roomStatus = '';
+            
+            if (foStatus === 'lock') {
+                roomStatus = 'lock';
+            } else if (hkStatus === 'inspected') {
+                roomStatus = 'ip';
+            } else if (foStatus === 'vd') {
+                if (hkStatus === 'dirty') {
+                    roomStatus = hasArr ? 'vd/arr' : 'vd';
+                } else if (hkStatus === 'clean') {
+                    roomStatus = hasArr ? 'vc/arr' : 'vc';
+                }
+            } else if (foStatus === 'od') {
+                if (hkStatus === 'dirty') {
+                    roomStatus = hasArr ? 'do/arr' : 'do';
+                } else if (hkStatus === 'clean') {
+                    roomStatus = 'oc';
+                } else if (hkStatus === 'dnd') {
+                    roomStatus = 'dnd';
+                } else if (hkStatus === 'nn') {
+                    roomStatus = 'nn';
+                }
+            }
+            
+            // Collect new guest info if ARR is checked
+            let newGuest = null;
+            if (hasArr) {
+                newGuest = {
+                    name: document.getElementById(`new-name-${roomNo}`).value || '',
+                    checkIn: document.getElementById(`new-checkin-${roomNo}`).value || '',
+                    checkOut: document.getElementById(`new-checkout-${roomNo}`).value || '',
+                    pax: document.getElementById(`new-pax-${roomNo}`).value || '1'
+                };
+            }
+            
+            return {
+                roomNo: roomNo,
+                updatedData: {
+                    roomStatus: roomStatus,
+                    newGuest: newGuest
+                }
+            };
+        }
+        
+        // Mark room as modified
+        function markRoomModified(roomNo) {
+            modifiedRooms.add(roomNo);
+            const row = document.getElementById(`row-${roomNo}`);
+            if (row) {
+                row.style.backgroundColor = '#fff3cd';
             }
         }
-
-        function resetSingleRoom(roomNo) {
-            roomChanges.delete(roomNo);
-            displayRoomsTable();
+        
+        // Get selected rooms
+        function getSelectedRooms() {
+            const checkboxes = document.querySelectorAll('.room-checkbox:checked');
+            return Array.from(checkboxes).map(cb => cb.id.replace('room-', ''));
         }
-
-        // Filter functions
-        function populateFloorFilter() {
-            const floorFilter = document.getElementById('floorFilter');
-            const floors = new Set();
+        
+        // Update selected count
+        function updateSelectedCount() {
+            const count = getSelectedRooms().length;
+            document.getElementById('selectedCount').textContent = `${count} phòng được chọn`;
+            document.getElementById('selectedCount').className = 
+                count > 0 ? 'badge bg-primary me-3' : 'badge bg-secondary me-3';
+        }
+        
+        // Show toast message
+        function showToast(message, type = 'success') {
+            const toastElement = document.getElementById('successToast');
+            const toastMessage = document.getElementById('toastMessage');
             
-            allRooms.forEach(room => {
-                const floor = room.roomNo.replace(/\d+$/, ''); // Lấy phần chữ (tầng)
-                floors.add(floor);
-            });
+            toastMessage.textContent = message;
+            toastElement.className = `toast align-items-center text-white bg-${type} border-0`;
             
-            Array.from(floors).sort().forEach(floor => {
-                const option = document.createElement('option');
-                option.value = floor;
-                option.textContent = `Tầng ${floor}`;
-                floorFilter.appendChild(option);
-            });
+            const toast = new bootstrap.Toast(toastElement);
+            toast.show();
         }
-
-        function filterByFloor() {
-            const selectedFloor = document.getElementById('floorFilter').value;
-            // Implementation for floor filtering
-            console.log('Filter by floor:', selectedFloor);
-        }
-
-        function filterByStatus() {
-            const selectedStatus = document.getElementById('statusFilter').value;
-            // Implementation for status filtering
-            console.log('Filter by status:', selectedStatus);
-        }
-
-        // UI helpers
-        function showLoadingOverlay() {
+        
+        // Show loading overlay
+        function showLoading(text = 'Đang tải...') {
             document.getElementById('loadingOverlay').style.display = 'flex';
+            document.getElementById('loadingText').textContent = text;
         }
-
-        function hideLoadingOverlay() {
+        
+        // Hide loading overlay
+        function hideLoading() {
             document.getElementById('loadingOverlay').style.display = 'none';
+        }
+        
+        // Show error
+        function showError(message) {
+            showToast(message, 'danger');
+        }
+        
+        // Show help
+        function showHelp() {
+            const helpMessage = `
+                <strong>Hướng dẫn sử dụng:</strong><br><br>
+                1. <strong>Chọn nhiều phòng:</strong> Tick chọn các phòng cần chỉnh sửa<br>
+                2. <strong>Điều chỉnh hàng loạt:</strong> Dùng công cụ ở trên để áp dụng cùng lúc cho các phòng được chọn<br>
+                3. <strong>Tình trạng FO:</strong> Vacant (Trống), Occupied (Có khách), Lock (Khóa)<br>
+                4. <strong>Tình trạng HK:</strong> Dirty (Bẩn), Clean (Sạch), Inspected (Đã kiểm), DND (Không làm phiền), NN (Không dọn)<br>
+                5. <strong>ARR:</strong> Đánh dấu nếu phòng có khách đến mới, nhập thông tin khách mới<br>
+                6. <strong>Lưu thay đổi:</strong> Nhấn "Lưu tất cả thay đổi" để ghi nhận<br><br>
+                <em>Lưu ý: Các ô màu vàng là đã có thay đổi chưa lưu</em>
+            `;
+            
+            alert(helpMessage.replace(/<br>/g, '\n').replace(/<[^>]*>/g, ''));
         }
     </script>
 </body>
