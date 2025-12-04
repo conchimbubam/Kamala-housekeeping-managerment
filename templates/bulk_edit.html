@@ -100,10 +100,26 @@
             padding: 8px 20px;
             border-radius: 6px;
             font-weight: 500;
+            white-space: nowrap;
         }
         
         .btn-apply-bulk:hover {
             background: linear-gradient(135deg, #0b5ed7, #0a58ca);
+            color: white;
+        }
+        
+        .btn-save-all {
+            background: linear-gradient(135deg, #198754, #157347);
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        
+        .btn-save-all:hover {
+            background: linear-gradient(135deg, #157347, #146c43);
             color: white;
         }
         
@@ -161,6 +177,19 @@
         
         .locked-room {
             background-color: rgba(220, 53, 69, 0.05) !important;
+        }
+        
+        .bulk-actions-row {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+        
+        .status-badge {
+            font-size: 0.75em;
+            padding: 3px 8px;
+            border-radius: 10px;
         }
     </style>
 </head>
@@ -227,13 +256,40 @@
                 </div>
             </div>
             
-            <div class="col-md-4 text-end">
-                <div class="d-grid">
-                    <button type="button" class="btn btn-apply-bulk" onclick="applyBulkChanges()">
-                        <i class="fas fa-check-circle me-2"></i>Áp dụng cho phòng đã chọn
-                    </button>
-                    <small class="text-muted mt-1">Áp dụng thay đổi cho tất cả phòng được chọn</small>
+            <div class="col-md-4">
+                <div class="d-flex flex-column flex-md-row gap-2 justify-content-end">
+                    <div class="text-end">
+                        <button type="button" class="btn btn-save-all" onclick="saveAllChanges()">
+                            <i class="fas fa-save me-2"></i>Lưu tất cả thay đổi
+                        </button>
+                        <div class="small text-muted mt-1">
+                            <span id="modifiedCount">0</span> phòng có thay đổi chưa lưu
+                        </div>
+                    </div>
+                    
+                    <div class="text-end">
+                        <button type="button" class="btn btn-apply-bulk" onclick="applyBulkChanges()">
+                            <i class="fas fa-check-circle me-2"></i>Áp dụng cho phòng đã chọn
+                        </button>
+                        <div class="small text-muted mt-1">
+                            <span id="selectedCountBadge">0</span> phòng được chọn
+                        </div>
+                    </div>
                 </div>
+            </div>
+        </div>
+        
+        <!-- Quick Status Info -->
+        <div class="bulk-actions-row mt-3">
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <small class="text-muted me-2"><strong>Chú thích trạng thái:</strong></small>
+                <span class="badge bg-primary status-badge">VD = Vacant Dirty (Trống/Bẩn)</span>
+                <span class="badge bg-light text-dark status-badge">VC = Vacant Clean (Trống/Sạch)</span>
+                <span class="badge bg-dark status-badge">OD = Occupied Dirty (Có khách/Bẩn)</span>
+                <span class="badge bg-warning status-badge">OC = Occupied Clean (Có khách/Sạch)</span>
+                <span class="badge bg-danger status-badge">Lock = Khóa phòng</span>
+                <span class="badge bg-success status-badge">IP = Đã kiểm tra</span>
+                <span class="badge bg-warning text-dark status-badge">/ARR = Có khách đến</span>
             </div>
         </div>
     </div>
@@ -267,10 +323,9 @@
         <div class="row">
             <div class="col-md-6">
                 <div class="d-flex align-items-center">
-                    <span id="selectedCount" class="badge bg-primary me-3">0 phòng được chọn</span>
-                    <button type="button" class="btn btn-success btn-sm me-2" onclick="saveAllChanges()">
-                        <i class="fas fa-save me-1"></i>Lưu tất cả thay đổi
-                    </button>
+                    <div class="me-3">
+                        <span class="badge bg-info">Tổng: <span id="totalRoomsCount">0</span> phòng</span>
+                    </div>
                     <button type="button" class="btn btn-warning btn-sm" onclick="loadRooms()">
                         <i class="fas fa-redo me-1"></i>Tải lại dữ liệu
                     </button>
@@ -279,6 +334,9 @@
             <div class="col-md-6 text-end">
                 <button type="button" class="btn btn-primary btn-sm me-2" onclick="showHelp()">
                     <i class="fas fa-question-circle me-1"></i>Hướng dẫn
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="clearAllSelections()">
+                    <i class="fas fa-times-circle me-1"></i>Bỏ chọn tất cả
                 </button>
                 <button type="button" class="btn btn-danger btn-sm" onclick="window.close()">
                     <i class="fas fa-times me-1"></i>Đóng tab
@@ -303,6 +361,39 @@
                     <i class="fas fa-check-circle me-2"></i><span id="toastMessage"></span>
                 </div>
                 <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Confirmation Modal -->
+    <div class="modal fade" id="confirmSaveModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>Xác nhận lưu thay đổi
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Bạn có chắc chắn muốn lưu tất cả thay đổi?</p>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Tổng cộng <strong><span id="modalModifiedCount">0</span> phòng</strong> sẽ được cập nhật.
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="confirmVacantClear">
+                        <label class="form-check-label" for="confirmVacantClear">
+                            Tôi hiểu rằng phòng chuyển sang <strong>Vacant</strong> sẽ xóa thông tin khách hiện tại
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-success" onclick="confirmSaveAll()">
+                        <i class="fas fa-check me-2"></i>Đồng ý lưu
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -385,7 +476,9 @@
                 if (data.success) {
                     allRooms = data.data;
                     displayRoomsTable(allRooms);
+                    updateTotalRoomsCount();
                     hideLoading();
+                    showToast('Đã tải dữ liệu phòng thành công', 'success');
                 } else {
                     throw new Error(data.error || 'Không thể tải dữ liệu');
                 }
@@ -451,6 +544,7 @@
             });
             
             updateSelectedCount();
+            updateModifiedCount();
         }
         
         // Create room row HTML
@@ -616,18 +710,9 @@
             if (newFoStatus === 'vd') {
                 document.getElementById(`current-guest-${roomNo}`).innerHTML = 
                     '<div class="guest-empty">Trống</div>';
-                
-                // Also clear any existing current guest data
-                clearCurrentGuestData(roomNo);
             }
             
             markRoomModified(roomNo);
-        }
-        
-        // Clear current guest data (for Vacant rooms)
-        function clearCurrentGuestData(roomNo) {
-            // This function prepares the data structure to clear current guest
-            // The actual clearing happens in collectRoomData()
         }
         
         // Toggle ARR fields
@@ -702,13 +787,39 @@
             document.getElementById('bulkArrCheck').checked = false;
         }
         
-        // Save all changes
-        async function saveAllChanges() {
+        // Save all changes with confirmation
+        function saveAllChanges() {
             if (modifiedRooms.size === 0) {
                 showToast('Không có thay đổi nào để lưu', 'info');
                 return;
             }
             
+            // Update modal count
+            document.getElementById('modalModifiedCount').textContent = modifiedRooms.size;
+            
+            // Show confirmation modal
+            const confirmModal = new bootstrap.Modal(document.getElementById('confirmSaveModal'));
+            confirmModal.show();
+        }
+        
+        // Confirm save all changes
+        async function confirmSaveAll() {
+            const confirmCheckbox = document.getElementById('confirmVacantClear');
+            if (!confirmCheckbox.checked) {
+                showToast('Vui lòng xác nhận đã hiểu về việc xóa thông tin khách khi chuyển sang Vacant', 'warning');
+                return;
+            }
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('confirmSaveModal'));
+            modal.hide();
+            
+            // Proceed with saving
+            await performSaveAllChanges();
+        }
+        
+        // Perform saving all changes
+        async function performSaveAllChanges() {
             showLoading('Đang lưu thay đổi...');
             
             try {
@@ -736,6 +847,7 @@
                 
                 let successCount = 0;
                 let errorCount = 0;
+                let errorMessages = [];
                 
                 for (let i = 0; i < results.length; i++) {
                     if (results[i].status === 'fulfilled') {
@@ -744,21 +856,31 @@
                             successCount++;
                         } else {
                             errorCount++;
+                            errorMessages.push(response.error || 'Lỗi không xác định');
                         }
                     } else {
                         errorCount++;
+                        errorMessages.push(results[i].reason.message || 'Lỗi kết nối');
                     }
                 }
                 
                 hideLoading();
                 
                 if (errorCount === 0) {
-                    showToast(`Đã lưu thành công ${successCount} phòng`, 'success');
+                    showToast(`✅ Đã lưu thành công ${successCount} phòng`, 'success');
                     modifiedRooms.clear();
+                    updateModifiedCount();
                     loadRooms(); // Reload data
                 } else {
-                    showToast(`Lưu ${successCount} phòng thành công, ${errorCount} phòng thất bại`, 'warning');
+                    let errorMsg = `Lưu ${successCount} phòng thành công, ${errorCount} phòng thất bại`;
+                    if (errorMessages.length > 0) {
+                        errorMsg += `. Lỗi: ${errorMessages[0]}`;
+                    }
+                    showToast(errorMsg, 'warning');
                 }
+                
+                // Reset confirmation checkbox
+                document.getElementById('confirmVacantClear').checked = false;
                 
             } catch (error) {
                 console.error('Error saving changes:', error);
@@ -850,6 +972,7 @@
             if (row) {
                 row.style.backgroundColor = '#fff3cd';
             }
+            updateModifiedCount();
         }
         
         // Get selected rooms
@@ -861,14 +984,16 @@
         // Update selected count
         function updateSelectedCount() {
             const count = getSelectedRooms().length;
-            const selectedCountElement = document.getElementById('selectedCount');
-            selectedCountElement.textContent = `${count} phòng được chọn`;
+            const selectedCountElement = document.getElementById('selectedCountBadge');
+            selectedCountElement.textContent = count;
             
             // Update badge color based on count
             if (count > 0) {
-                selectedCountElement.className = 'badge bg-primary me-3';
+                selectedCountElement.parentElement.classList.remove('text-muted');
+                selectedCountElement.parentElement.classList.add('text-primary', 'fw-bold');
             } else {
-                selectedCountElement.className = 'badge bg-secondary me-3';
+                selectedCountElement.parentElement.classList.remove('text-primary', 'fw-bold');
+                selectedCountElement.parentElement.classList.add('text-muted');
             }
             
             // Update select all checkbox
@@ -876,6 +1001,35 @@
             const checkedCheckboxes = document.querySelectorAll('.room-checkbox:checked').length;
             document.getElementById('selectAllRooms').checked = 
                 totalCheckboxes > 0 && checkedCheckboxes === totalCheckboxes;
+        }
+        
+        // Update modified count
+        function updateModifiedCount() {
+            const count = modifiedRooms.size;
+            const modifiedCountElement = document.getElementById('modifiedCount');
+            modifiedCountElement.textContent = count;
+            
+            if (count > 0) {
+                modifiedCountElement.parentElement.classList.remove('text-muted');
+                modifiedCountElement.parentElement.classList.add('text-warning', 'fw-bold');
+            } else {
+                modifiedCountElement.parentElement.classList.remove('text-warning', 'fw-bold');
+                modifiedCountElement.parentElement.classList.add('text-muted');
+            }
+        }
+        
+        // Update total rooms count
+        function updateTotalRoomsCount() {
+            document.getElementById('totalRoomsCount').textContent = allRooms.length;
+        }
+        
+        // Clear all selections
+        function clearAllSelections() {
+            const checkboxes = document.querySelectorAll('.room-checkbox');
+            checkboxes.forEach(cb => cb.checked = false);
+            document.getElementById('selectAllRooms').checked = false;
+            updateSelectedCount();
+            showToast('Đã bỏ chọn tất cả phòng', 'info');
         }
         
         // Show toast message
