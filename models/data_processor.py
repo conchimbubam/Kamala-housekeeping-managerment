@@ -1,6 +1,7 @@
 # models/data_processor.py
 import requests
 import logging
+import re
 from datetime import datetime
 from config import Config
 
@@ -14,7 +15,7 @@ class DataProcessor:
         self.range_name = range_name or Config.RANGE_NAME
     
     def initialize_rooms_from_google_sheets(self, user_info="System"):
-        """Khởi tạo dữ liệu phòng từ Google Sheets lần đầu tiên"""
+        """Khởi tạo dữ liệu phòng từ Google Sheets lần đầu tiên - ĐÃ SỬA ĐỂ LƯU CẢ NEWGUEST"""
         try:
             # Lấy dữ liệu từ Google Sheets
             raw_data = self.fetch_data_from_sheets()
@@ -34,26 +35,43 @@ class DataProcessor:
                     cur.execute('DELETE FROM rooms')
                     
                     for room in rooms_data:
-                        # Xử lý thông tin khách
+                        # Xử lý thông tin khách hiện tại
                         current_guest = room.get('currentGuest', {})
                         new_guest = room.get('newGuest', {})
                         
-                        # Xử lý ngày tháng - chuyển đổi thành NULL nếu không hợp lệ
-                        check_in = self.parse_date_for_postgresql(current_guest.get('checkIn', ''))
-                        check_out = self.parse_date_for_postgresql(current_guest.get('checkOut', ''))
+                        # Xử lý ngày tháng cho PostgreSQL
+                        current_check_in = self.parse_date_for_postgresql(current_guest.get('checkIn', ''))
+                        current_check_out = self.parse_date_for_postgresql(current_guest.get('checkOut', ''))
+                        new_check_in = self.parse_date_for_postgresql(new_guest.get('checkIn', ''))
+                        new_check_out = self.parse_date_for_postgresql(new_guest.get('checkOut', ''))
                         
+                        # Tạo notes cho cả 2 khách
+                        notes_parts = []
+                        if current_guest.get('pax', 0):
+                            notes_parts.append(f"Current Pax: {current_guest.get('pax', 0)}")
+                        if new_guest.get('pax', 0):
+                            notes_parts.append(f"New Pax: {new_guest.get('pax', 0)}")
+                        notes = "; ".join(notes_parts)
+                        
+                        # INSERT với cả currentGuest và newGuest
                         cur.execute('''
                             INSERT INTO rooms 
-                            (room_no, room_type, room_status, guest_name, check_in, check_out, notes)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s)
+                            (room_no, room_type, room_status, 
+                             guest_name, check_in, check_out,
+                             new_guest_name, new_check_in, new_check_out,
+                             notes, last_updated)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
                         ''', (
                             room.get('roomNo', ''),
                             room.get('roomType', ''),
                             room.get('roomStatus', 'vc'),
                             current_guest.get('name', ''),
-                            check_in,
-                            check_out,
-                            f"Pax: {current_guest.get('pax', 0)}" if current_guest.get('pax', 0) else ''
+                            current_check_in,
+                            current_check_out,
+                            new_guest.get('name', ''),
+                            new_check_in,
+                            new_check_out,
+                            notes
                         ))
                     
                     # Ghi log sync
@@ -64,7 +82,7 @@ class DataProcessor:
                 
                 conn.commit()
             
-            logger.info(f"✅ Đã khởi tạo {len(rooms_data)} phòng từ Google Sheets")
+            logger.info(f"✅ Đã khởi tạo {len(rooms_data)} phòng từ Google Sheets (bao gồm cả newGuest)")
             return True
             
         except Exception as e:
@@ -89,7 +107,6 @@ class DataProcessor:
         date_str = str(date_str).strip()
         
         try:
-            import re
             patterns = [
                 r'(\d{1,2})[/-](\d{1,2})[/-](\d{4})',
                 r'(\d{1,2})[/-](\d{1,2})[/-](\d{2})',
@@ -111,7 +128,6 @@ class DataProcessor:
                     
                     # Chuyển đổi thành định dạng PostgreSQL DATE
                     try:
-                        # Tạo đối tượng datetime để validate
                         date_obj = datetime(int(year), int(month), int(day))
                         return date_obj.strftime('%Y-%m-%d')
                     except ValueError:
@@ -172,14 +188,13 @@ class DataProcessor:
             return status.lower()
 
     def parse_date(self, date_str):
-        """Chuyển đổi định dạng ngày - giữ nguyên cho tương thích"""
+        """Chuyển đổi định dạng ngày cho hiển thị - giữ nguyên cho tương thích"""
         if not date_str or date_str == '00-01-00':
-            return '00-01-00'
+            return ''
         
         date_str = str(date_str).strip()
         
         try:
-            import re
             patterns = [
                 r'(\d{1,2})[/-](\d{1,2})[/-](\d{4})',
                 r'(\d{1,2})[/-](\d{1,2})[/-](\d{2})',
@@ -192,6 +207,8 @@ class DataProcessor:
                     
                     if len(year) == 4:
                         year = year[2:]
+                    elif len(year) == 2:
+                        pass  # Giữ nguyên
                     
                     day = day.zfill(2)
                     month = month.zfill(2)
@@ -199,10 +216,10 @@ class DataProcessor:
                     
                     return f"{day}-{month}-{year}"
             
-            return '00-01-00'
+            return ''
         except Exception as e:
             logger.warning(f"Lỗi phân tích ngày tháng: {date_str}, Error: {e}")
-            return '00-01-00'
+            return ''
 
     def parse_pax(self, pax_str):
         """Chuyển đổi số lượng khách sang integer"""
@@ -210,7 +227,6 @@ class DataProcessor:
             return 0
         
         try:
-            import re
             pax_clean = re.sub(r'[^\d]', '', str(pax_str))
             if pax_clean:
                 return int(pax_clean)
@@ -223,11 +239,10 @@ class DataProcessor:
         if not name_str:
             return ''
         
-        name_clean = str(name_str).strip()
-        return name_clean
+        return str(name_str).strip()
 
     def process_room_data(self, raw_data):
-        """Xử lý dữ liệu thô từ Google Sheets"""
+        """Xử lý dữ liệu thô từ Google Sheets - ĐÃ SỬA ĐỂ XỬ LÝ CẢ NEWGUEST"""
         if not raw_data or 'values' not in raw_data:
             return []
         
@@ -239,6 +254,7 @@ class DataProcessor:
         
         for row_index, row in enumerate(values[1:], start=2):
             try:
+                # Đảm bảo row có đủ 10 cột
                 while len(row) < 10:
                     row.append('')
                 
@@ -247,6 +263,7 @@ class DataProcessor:
                     continue
                 
                 room_status = self.clean_room_status(row[1])
+                room_type = str(row[10]).strip() if len(row) > 10 else ''  # Thêm room_type nếu có
                 
                 current_guest = {
                     'name': self.clean_guest_name(row[2]),
@@ -264,6 +281,7 @@ class DataProcessor:
                 
                 room_data = {
                     'roomNo': room_no,
+                    'roomType': room_type,
                     'roomStatus': room_status,
                     'currentGuest': current_guest,
                     'newGuest': new_guest
@@ -278,13 +296,15 @@ class DataProcessor:
         return rooms_data
 
     def get_all_rooms(self):
-        """Lấy tất cả phòng từ database"""
+        """Lấy tất cả phòng từ database - ĐÃ SỬA ĐỂ TRẢ VỀ CẢ NEWGUEST"""
         try:
             with self.db.get_connection() as conn:
                 with conn.cursor() as cur:
                     cur.execute('''
-                        SELECT room_no, room_type, room_status, guest_name, 
-                               check_in, check_out, notes, last_updated
+                        SELECT room_no, room_type, room_status, 
+                               guest_name, check_in, check_out,
+                               new_guest_name, new_check_in, new_check_out,
+                               notes, last_updated
                         FROM rooms 
                         ORDER BY room_no
                     ''')
@@ -296,18 +316,9 @@ class DataProcessor:
                     for row in rows:
                         row_dict = dict(zip(columns, row))
                         
+                        # Xử lý notes để lấy thông tin pax
                         notes = row_dict.get('notes', '') or ''
-                        pax = 0
-                        if 'Pax:' in notes:
-                            try:
-                                pax_str = notes.split('Pax:')[1].strip().split()[0]
-                                pax = int(pax_str)
-                            except:
-                                pax = 0
-                        
-                        # Xử lý ngày tháng từ PostgreSQL
-                        check_in = row_dict.get('check_in')
-                        check_out = row_dict.get('check_out')
+                        current_pax, new_pax = self.extract_pax_from_notes(notes)
                         
                         rooms.append({
                             'roomNo': row_dict.get('room_no', ''),
@@ -315,15 +326,15 @@ class DataProcessor:
                             'roomStatus': row_dict.get('room_status', 'vc'),
                             'currentGuest': {
                                 'name': row_dict.get('guest_name', '') or '',
-                                'checkIn': self.format_date_for_display(check_in),
-                                'checkOut': self.format_date_for_display(check_out),
-                                'pax': pax
+                                'checkIn': self.format_date_for_display(row_dict.get('check_in')),
+                                'checkOut': self.format_date_for_display(row_dict.get('check_out')),
+                                'pax': current_pax
                             },
                             'newGuest': {
-                                'name': '',
-                                'checkIn': '',
-                                'checkOut': '',
-                                'pax': 0
+                                'name': row_dict.get('new_guest_name', '') or '',
+                                'checkIn': self.format_date_for_display(row_dict.get('new_check_in')),
+                                'checkOut': self.format_date_for_display(row_dict.get('new_check_out')),
+                                'pax': new_pax
                             }
                         })
                     
@@ -333,6 +344,38 @@ class DataProcessor:
             logger.error(f"Lỗi get_all_rooms: {e}")
             return {'success': False, 'error': str(e)}
 
+    def extract_pax_from_notes(self, notes):
+        """Trích xuất thông tin pax từ notes"""
+        current_pax = 0
+        new_pax = 0
+        
+        if not notes:
+            return current_pax, new_pax
+        
+        # Tìm Current Pax
+        if 'Current Pax:' in notes:
+            try:
+                current_parts = notes.split('Current Pax:')[1].split(';')[0].strip()
+                current_pax = int(re.sub(r'[^\d]', '', current_parts))
+            except:
+                current_pax = 0
+        
+        # Tìm New Pax
+        if 'New Pax:' in notes:
+            try:
+                new_parts = notes.split('New Pax:')[1].split(';')[0].strip()
+                new_pax = int(re.sub(r'[^\d]', '', new_parts))
+            except:
+                new_pax = 0
+        elif 'Pax:' in notes and 'Current Pax:' not in notes:  # Tương thích cũ
+            try:
+                pax_str = notes.split('Pax:')[1].strip().split()[0]
+                current_pax = int(pax_str)
+            except:
+                current_pax = 0
+        
+        return current_pax, new_pax
+
     def format_date_for_display(self, date_value):
         """Định dạng ngày tháng cho hiển thị"""
         if not date_value:
@@ -341,7 +384,15 @@ class DataProcessor:
         try:
             # Nếu là string, trả về trực tiếp
             if isinstance(date_value, str):
-                return date_value
+                # Nếu đã là định dạng dd-mm-yy thì giữ nguyên
+                if re.match(r'\d{2}-\d{2}-\d{2}', date_value):
+                    return date_value
+                # Nếu là định dạng YYYY-MM-DD thì chuyển đổi
+                elif re.match(r'\d{4}-\d{2}-\d{2}', date_value):
+                    date_obj = datetime.strptime(date_value, '%Y-%m-%d')
+                    return date_obj.strftime('%d-%m-%y')
+                else:
+                    return str(date_value)
             
             # Nếu là datetime object, format lại
             if isinstance(date_value, datetime):
@@ -352,14 +403,17 @@ class DataProcessor:
             return ''
 
     def get_room_by_number(self, room_no):
-        """Lấy thông tin chi tiết một phòng"""
+        """Lấy thông tin chi tiết một phòng - ĐÃ SỬA ĐỂ TRẢ VỀ CẢ NEWGUEST"""
         try:
             with self.db.get_connection() as conn:
                 with conn.cursor() as cur:
-                    cur.execute(
-                        'SELECT * FROM rooms WHERE room_no = %s', 
-                        (room_no,)
-                    )
+                    cur.execute('''
+                        SELECT room_no, room_type, room_status, 
+                               guest_name, check_in, check_out,
+                               new_guest_name, new_check_in, new_check_out,
+                               notes, last_updated
+                        FROM rooms WHERE room_no = %s
+                    ''', (room_no,))
                     
                     columns = [desc[0] for desc in cur.description]
                     row = cur.fetchone()
@@ -367,17 +421,9 @@ class DataProcessor:
                     if row:
                         row_dict = dict(zip(columns, row))
                         
+                        # Xử lý notes để lấy thông tin pax
                         notes = row_dict.get('notes', '') or ''
-                        pax = 0
-                        if 'Pax:' in notes:
-                            try:
-                                pax_str = notes.split('Pax:')[1].strip().split()[0]
-                                pax = int(pax_str)
-                            except:
-                                pax = 0
-                        
-                        check_in = row_dict.get('check_in')
-                        check_out = row_dict.get('check_out')
+                        current_pax, new_pax = self.extract_pax_from_notes(notes)
                         
                         return {
                             'roomNo': row_dict.get('room_no', ''),
@@ -385,15 +431,15 @@ class DataProcessor:
                             'roomStatus': row_dict.get('room_status', 'vc'),
                             'currentGuest': {
                                 'name': row_dict.get('guest_name', '') or '',
-                                'checkIn': self.format_date_for_display(check_in),
-                                'checkOut': self.format_date_for_display(check_out),
-                                'pax': pax
+                                'checkIn': self.format_date_for_display(row_dict.get('check_in')),
+                                'checkOut': self.format_date_for_display(row_dict.get('check_out')),
+                                'pax': current_pax
                             },
                             'newGuest': {
-                                'name': '',
-                                'checkIn': '',
-                                'checkOut': '',
-                                'pax': 0
+                                'name': row_dict.get('new_guest_name', '') or '',
+                                'checkIn': self.format_date_for_display(row_dict.get('new_check_in')),
+                                'checkOut': self.format_date_for_display(row_dict.get('new_check_out')),
+                                'pax': new_pax
                             }
                         }
                     return None
@@ -403,36 +449,30 @@ class DataProcessor:
             return None
 
     def update_room_data(self, room_no, updated_data, user_info):
-        """Cập nhật thông tin phòng trong database"""
+        """Cập nhật thông tin phòng trong database - ĐÃ SỬA ĐỂ CẬP NHẬT CẢ NEWGUEST"""
         try:
             with self.db.get_connection() as conn:
                 with conn.cursor() as cur:
-                    # Lấy thông tin phòng hiện tại
-                    cur.execute(
-                        'SELECT * FROM rooms WHERE room_no = %s', 
-                        (room_no,)
-                    )
-                    
-                    columns = [desc[0] for desc in cur.description]
-                    current_row = cur.fetchone()
-                    
-                    if not current_row:
-                        return False
-                    
                     # Build dynamic update query
                     set_clause = []
                     params = []
                     
+                    # Cập nhật roomStatus
                     if 'roomStatus' in updated_data:
                         set_clause.append('room_status = %s')
                         params.append(updated_data['roomStatus'])
                     
+                    # Cập nhật roomType
+                    if 'roomType' in updated_data:
+                        set_clause.append('room_type = %s')
+                        params.append(updated_data['roomType'])
+                    
+                    # Cập nhật currentGuest
                     if 'currentGuest' in updated_data:
                         guest_data = updated_data['currentGuest']
                         set_clause.append('guest_name = %s')
                         params.append(guest_data.get('name', ''))
                         
-                        # Xử lý ngày tháng cho PostgreSQL
                         check_in = self.parse_date_for_postgresql(guest_data.get('checkIn', ''))
                         check_out = self.parse_date_for_postgresql(guest_data.get('checkOut', ''))
                         
@@ -441,15 +481,41 @@ class DataProcessor:
                         
                         set_clause.append('check_out = %s')
                         params.append(check_out)
+                    
+                    # Cập nhật newGuest
+                    if 'newGuest' in updated_data:
+                        new_guest_data = updated_data['newGuest']
+                        set_clause.append('new_guest_name = %s')
+                        params.append(new_guest_data.get('name', ''))
                         
-                        pax = guest_data.get('pax', 0)
-                        notes = f"Pax: {pax}" if pax else ''
+                        new_check_in = self.parse_date_for_postgresql(new_guest_data.get('checkIn', ''))
+                        new_check_out = self.parse_date_for_postgresql(new_guest_data.get('checkOut', ''))
+                        
+                        set_clause.append('new_check_in = %s')
+                        params.append(new_check_in)
+                        
+                        set_clause.append('new_check_out = %s')
+                        params.append(new_check_out)
+                    
+                    # Cập nhật notes dựa trên pax
+                    if 'currentGuest' in updated_data or 'newGuest' in updated_data:
+                        current_pax = 0
+                        new_pax = 0
+                        
+                        if 'currentGuest' in updated_data:
+                            current_pax = updated_data['currentGuest'].get('pax', 0)
+                        if 'newGuest' in updated_data:
+                            new_pax = updated_data['newGuest'].get('pax', 0)
+                        
+                        notes_parts = []
+                        if current_pax:
+                            notes_parts.append(f"Current Pax: {current_pax}")
+                        if new_pax:
+                            notes_parts.append(f"New Pax: {new_pax}")
+                        notes = "; ".join(notes_parts)
+                        
                         set_clause.append('notes = %s')
                         params.append(notes)
-                    
-                    if 'roomType' in updated_data:
-                        set_clause.append('room_type = %s')
-                        params.append(updated_data['roomType'])
                     
                     if not set_clause:
                         return False
@@ -493,11 +559,18 @@ class DataProcessor:
             return {}
 
     def get_rooms_by_floor(self):
-        """Nhóm phòng theo tầng"""
+        """Nhóm phòng theo tầng - ĐÃ SỬA ĐỂ TRẢ VỀ CẢ NEWGUEST"""
         try:
             with self.db.get_connection() as conn:
                 with conn.cursor() as cur:
-                    cur.execute('SELECT * FROM rooms ORDER BY room_no')
+                    cur.execute('''
+                        SELECT room_no, room_type, room_status, 
+                               guest_name, check_in, check_out,
+                               new_guest_name, new_check_in, new_check_out,
+                               notes
+                        FROM rooms 
+                        ORDER BY room_no
+                    ''')
                     
                     columns = [desc[0] for desc in cur.description]
                     rows = cur.fetchall()
@@ -506,22 +579,14 @@ class DataProcessor:
                     for row in rows:
                         row_dict = dict(zip(columns, row))
                         
+                        # Xử lý notes để lấy thông tin pax
                         notes = row_dict.get('notes', '') or ''
-                        pax = 0
-                        if 'Pax:' in notes:
-                            try:
-                                pax_str = notes.split('Pax:')[1].strip().split()[0]
-                                pax = int(pax_str)
-                            except:
-                                pax = 0
+                        current_pax, new_pax = self.extract_pax_from_notes(notes)
                         
                         floor = row_dict.get('room_no', '0')[0] if row_dict.get('room_no') else '0'
                         
                         if floor not in floors:
                             floors[floor] = []
-                        
-                        check_in = row_dict.get('check_in')
-                        check_out = row_dict.get('check_out')
                         
                         floors[floor].append({
                             'roomNo': row_dict.get('room_no', ''),
@@ -529,15 +594,15 @@ class DataProcessor:
                             'roomStatus': row_dict.get('room_status', 'vc'),
                             'currentGuest': {
                                 'name': row_dict.get('guest_name', '') or '',
-                                'checkIn': self.format_date_for_display(check_in),
-                                'checkOut': self.format_date_for_display(check_out),
-                                'pax': pax
+                                'checkIn': self.format_date_for_display(row_dict.get('check_in')),
+                                'checkOut': self.format_date_for_display(row_dict.get('check_out')),
+                                'pax': current_pax
                             },
                             'newGuest': {
-                                'name': '',
-                                'checkIn': '',
-                                'checkOut': '',
-                                'pax': 0
+                                'name': row_dict.get('new_guest_name', '') or '',
+                                'checkIn': self.format_date_for_display(row_dict.get('new_check_in')),
+                                'checkOut': self.format_date_for_display(row_dict.get('new_check_out')),
+                                'pax': new_pax
                             }
                         })
                     
@@ -597,3 +662,74 @@ class DataProcessor:
             return result.get('data', []) if result['success'] else []
         else:
             raise Exception("Không thể cập nhật từ Google Sheets")
+
+    def clear_new_guest(self, room_no, user_info):
+        """Xóa thông tin khách sắp đến (newGuest) của phòng"""
+        try:
+            with self.db.get_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute('''
+                        UPDATE rooms 
+                        SET new_guest_name = '',
+                            new_check_in = NULL,
+                            new_check_out = NULL,
+                            notes = TRIM(BOTH '; ' FROM REPLACE(notes, 'New Pax: ' || 
+                                    (CASE WHEN notes LIKE '%New Pax:%' THEN 
+                                        SUBSTRING(notes FROM 'New Pax: ([0-9]+)') 
+                                        ELSE '0' END), '')),
+                            last_updated = CURRENT_TIMESTAMP
+                        WHERE room_no = %s
+                    ''', (room_no,))
+                    
+                    conn.commit()
+                    return True
+                    
+        except Exception as e:
+            logger.error(f"Lỗi clear_new_guest {room_no}: {e}")
+            return False
+
+    def transfer_new_to_current(self, room_no, user_info):
+        """Chuyển thông tin khách sắp đến thành khách hiện tại"""
+        try:
+            with self.db.get_connection() as conn:
+                with conn.cursor() as cur:
+                    # Lấy thông tin hiện tại
+                    cur.execute('''
+                        SELECT guest_name, check_in, check_out, 
+                               new_guest_name, new_check_in, new_check_out,
+                               notes
+                        FROM rooms WHERE room_no = %s
+                    ''', (room_no,))
+                    
+                    row = cur.fetchone()
+                    if not row:
+                        return False
+                    
+                    # Cập nhật: newGuest -> currentGuest, clear newGuest
+                    notes = row[6] or ''
+                    # Giữ lại Current Pax nếu có, xóa New Pax
+                    if 'Current Pax:' in notes:
+                        current_pax_part = notes.split('Current Pax:')[1].split(';')[0].strip()
+                        notes = f"Current Pax: {current_pax_part}"
+                    else:
+                        notes = ''
+                    
+                    cur.execute('''
+                        UPDATE rooms 
+                        SET guest_name = new_guest_name,
+                            check_in = new_check_in,
+                            check_out = new_check_out,
+                            new_guest_name = '',
+                            new_check_in = NULL,
+                            new_check_out = NULL,
+                            notes = %s,
+                            last_updated = CURRENT_TIMESTAMP
+                        WHERE room_no = %s
+                    ''', (notes, room_no))
+                    
+                    conn.commit()
+                    return True
+                    
+        except Exception as e:
+            logger.error(f"Lỗi transfer_new_to_current {room_no}: {e}")
+            return False
