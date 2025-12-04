@@ -87,16 +87,25 @@ class DatabaseManager:
             try:
                 with self.get_connection() as conn:
                     with conn.cursor() as cur:
-                        # Bảng rooms - thay thế rooms.json
+                        # Bảng rooms - CẬP NHẬT: Thêm trường cho khách mới
                         cur.execute('''
                             CREATE TABLE IF NOT EXISTS rooms (
                                 room_no VARCHAR(10) PRIMARY KEY,
                                 room_type VARCHAR(50) NOT NULL,
                                 room_status VARCHAR(20) NOT NULL DEFAULT 'vc',
+                                
+                                -- Thông tin khách hiện tại (current guest)
                                 guest_name TEXT DEFAULT '',
                                 check_in VARCHAR(20) DEFAULT '',
                                 check_out VARCHAR(20) DEFAULT '',
                                 notes TEXT DEFAULT '',
+                                
+                                -- Thông tin khách mới (new guest) - THÊM MỚI
+                                new_guest_name TEXT DEFAULT '',
+                                new_check_in VARCHAR(20) DEFAULT '',
+                                new_check_out VARCHAR(20) DEFAULT '',
+                                new_guest_pax INTEGER DEFAULT 0,
+                                
                                 last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                             )
@@ -155,7 +164,7 @@ class DatabaseManager:
                         ''')
                     
                     conn.commit()
-                    logger.info("✅ PostgreSQL database schema đã được khởi tạo")
+                    logger.info("✅ PostgreSQL database schema đã được khởi tạo (bao gồm trường khách mới)")
                     return True
                     
             except Exception as e:
@@ -394,12 +403,47 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"❌ Lỗi cleanup logs: {e}")
             return 0
+    
+    def upgrade_schema_if_needed(self):
+        """Nâng cấp schema nếu cần - thêm các cột mới nếu chưa tồn tại"""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cur:
+                    # Kiểm tra và thêm cột mới nếu chưa tồn tại
+                    columns_to_add = [
+                        ('new_guest_name', 'TEXT DEFAULT \'\''),
+                        ('new_check_in', 'VARCHAR(20) DEFAULT \'\''),
+                        ('new_check_out', 'VARCHAR(20) DEFAULT \'\''),
+                        ('new_guest_pax', 'INTEGER DEFAULT 0')
+                    ]
+                    
+                    for column_name, column_def in columns_to_add:
+                        cur.execute('''
+                            SELECT column_name 
+                            FROM information_schema.columns 
+                            WHERE table_name = 'rooms' AND column_name = %s
+                        ''', (column_name,))
+                        
+                        if not cur.fetchone():
+                            cur.execute(f'ALTER TABLE rooms ADD COLUMN {column_name} {column_def}')
+                            logger.info(f"✅ Đã thêm cột {column_name} vào bảng rooms")
+                    
+                    conn.commit()
+                    logger.info("✅ Đã kiểm tra và cập nhật schema database")
+                    return True
+                    
+        except Exception as e:
+            logger.error(f"❌ Lỗi nâng cấp schema: {e}")
+            return False
 
 
 # Helper function để tạo database manager instance
 def create_db_manager():
     """Factory function để tạo DatabaseManager instance"""
-    return DatabaseManager()
+    db = DatabaseManager()
+    # Nâng cấp schema nếu cần
+    db.upgrade_schema_if_needed()
+    return db
 
 
 if __name__ == '__main__':
@@ -416,10 +460,10 @@ if __name__ == '__main__':
             print(f"   • Activity Logs: {info.get('log_count', 0)}")
             print(f"   • Status Stats: {info.get('status_stats', {})}")
             
-            # Test initialize_database method
-            print(f"🔄 Testing initialize_database...")
-            success = db.initialize_database()
-            print(f"   • initialize_database: {'✅ Success' if success else '❌ Failed'}")
+            # Kiểm tra và nâng cấp schema
+            print(f"🔄 Kiểm tra và nâng cấp schema...")
+            success = db.upgrade_schema_if_needed()
+            print(f"   • upgrade_schema_if_needed: {'✅ Success' if success else '❌ Failed'}")
             
         else:
             print(f"❌ Lỗi kết nối database: {result.get('error')}")
