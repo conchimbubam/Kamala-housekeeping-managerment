@@ -155,6 +155,23 @@
             opacity: 0.6;
             cursor: not-allowed;
         }
+        
+        .current-guest-cell {
+            position: relative;
+        }
+        
+        .clear-guest-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            padding: 2px 6px;
+            font-size: 0.75rem;
+            display: none;
+        }
+        
+        .current-guest-cell:hover .clear-guest-btn {
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
@@ -308,6 +325,7 @@
         // Global variables
         let allRooms = [];
         let modifiedRooms = new Set();
+        let originalRoomData = {}; // Store original room data for reference
         
         // DOM Content Loaded
         document.addEventListener('DOMContentLoaded', function() {
@@ -347,7 +365,7 @@
                     const foSelect = document.getElementById(`fo-${roomId}`);
                     if (foSelect) {
                         foSelect.value = value;
-                        markRoomModified(roomId);
+                        handleFoStatusChange(roomId, value);
                     }
                 });
             });
@@ -377,6 +395,10 @@
                 
                 if (data.success) {
                     allRooms = data.data;
+                    // Store original room data
+                    allRooms.forEach(room => {
+                        originalRoomData[room.roomNo] = { ...room };
+                    });
                     displayRoomsTable(allRooms);
                     hideLoading();
                 } else {
@@ -399,38 +421,54 @@
                 tbody.innerHTML += row;
             });
             
-            // Add event listeners to ARR checkboxes
+            // Add event listeners
             rooms.forEach(room => {
-                const arrCheckbox = document.getElementById(`arr-${room.roomNo}`);
+                const roomNo = room.roomNo;
+                
+                // ARR checkbox event
+                const arrCheckbox = document.getElementById(`arr-${roomNo}`);
                 if (arrCheckbox) {
                     arrCheckbox.addEventListener('change', function() {
-                        toggleArrFields(room.roomNo, this.checked);
+                        toggleArrFields(roomNo, this.checked);
                     });
                 }
                 
-                // Add event listeners to checkboxes
-                const roomCheckbox = document.getElementById(`room-${room.roomNo}`);
+                // Room checkbox event
+                const roomCheckbox = document.getElementById(`room-${roomNo}`);
                 if (roomCheckbox) {
                     roomCheckbox.addEventListener('change', updateSelectedCount);
                 }
                 
-                // Add event listeners to FO/HK selects
-                const foSelect = document.getElementById(`fo-${room.roomNo}`);
-                const hkSelect = document.getElementById(`hk-${room.roomNo}`);
+                // FO status change event
+                const foSelect = document.getElementById(`fo-${roomNo}`);
                 if (foSelect) {
-                    foSelect.addEventListener('change', () => markRoomModified(room.roomNo));
-                }
-                if (hkSelect) {
-                    hkSelect.addEventListener('change', () => markRoomModified(room.roomNo));
+                    foSelect.addEventListener('change', function() {
+                        handleFoStatusChange(roomNo, this.value);
+                    });
                 }
                 
-                // Add event listeners to guest info inputs
+                // HK status change event
+                const hkSelect = document.getElementById(`hk-${roomNo}`);
+                if (hkSelect) {
+                    hkSelect.addEventListener('change', () => markRoomModified(roomNo));
+                }
+                
+                // Guest info input events
                 ['new-name', 'new-checkin', 'new-checkout', 'new-pax'].forEach(field => {
-                    const input = document.getElementById(`${field}-${room.roomNo}`);
+                    const input = document.getElementById(`${field}-${roomNo}`);
                     if (input) {
-                        input.addEventListener('change', () => markRoomModified(room.roomNo));
+                        input.addEventListener('change', () => markRoomModified(roomNo));
                     }
                 });
+                
+                // Clear guest button event
+                const clearBtn = document.getElementById(`clear-guest-${roomNo}`);
+                if (clearBtn) {
+                    clearBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        clearCurrentGuest(roomNo);
+                    });
+                }
             });
             
             updateSelectedCount();
@@ -451,6 +489,9 @@
             // Check if has ARR (arrival)
             const hasArr = currentStatus.includes('/arr') || newGuest.name;
             
+            // Check if room has current guest
+            const hasCurrentGuest = currentGuest.name && currentGuest.name.trim() !== '';
+            
             return `
                 <tr id="row-${roomNo}">
                     <td class="checkbox-cell">
@@ -460,7 +501,7 @@
                         <span class="badge bg-dark">${roomNo}</span>
                     </td>
                     <td class="status-cell">
-                        <select class="form-select form-select-sm" id="fo-${roomNo}">
+                        <select class="form-select form-select-sm fo-status-select" id="fo-${roomNo}">
                             <option value="vd" ${foStatus === 'vd' ? 'selected' : ''}>Vacant</option>
                             <option value="od" ${foStatus === 'od' ? 'selected' : ''}>Occupied</option>
                             <option value="lock" ${foStatus === 'lock' ? 'selected' : ''}>Lock</option>
@@ -476,13 +517,14 @@
                             <option value="nn" ${hkStatus === 'nn' ? 'selected' : ''}>NN</option>
                         </select>
                     </td>
-                    <td class="guest-cell">
+                    <td class="guest-cell current-guest-cell">
                         <div class="small">
-                            <div><strong>${currentGuest.name || 'Trống'}</strong></div>
-                            <div>CI: ${currentGuest.checkIn || '-'}</div>
-                            <div>CO: ${currentGuest.checkOut || '-'}</div>
-                            <div>${currentGuest.pax || '0'} khách</div>
+                            <div><strong id="current-guest-name-${roomNo}">${currentGuest.name || 'Trống'}</strong></div>
+                            <div id="current-guest-ci-${roomNo}">CI: ${currentGuest.checkIn || '-'}</div>
+                            <div id="current-guest-co-${roomNo}">CO: ${currentGuest.checkOut || '-'}</div>
+                            <div id="current-guest-pax-${roomNo}">${currentGuest.pax || '0'} khách</div>
                         </div>
+                        ${hasCurrentGuest ? `<button class="btn btn-danger btn-sm clear-guest-btn" id="clear-guest-${roomNo}"><i class="fas fa-times"></i></button>` : ''}
                     </td>
                     <td class="arr-cell">
                         <div class="form-check">
@@ -525,6 +567,53 @@
                     </td>
                 </tr>
             `;
+        }
+        
+        // Handle FO status change
+        function handleFoStatusChange(roomNo, foStatus) {
+            if (foStatus === 'vd') {
+                // When changing to Vacant, clear current guest info
+                clearCurrentGuest(roomNo);
+                
+                // Also disable ARR and clear new guest info
+                const arrCheckbox = document.getElementById(`arr-${roomNo}`);
+                if (arrCheckbox && arrCheckbox.checked) {
+                    arrCheckbox.checked = false;
+                    toggleArrFields(roomNo, false);
+                    clearNewGuestInfo(roomNo);
+                }
+            }
+            
+            markRoomModified(roomNo);
+        }
+        
+        // Clear current guest info
+        function clearCurrentGuest(roomNo) {
+            // Update display
+            document.getElementById(`current-guest-name-${roomNo}`).textContent = 'Trống';
+            document.getElementById(`current-guest-ci-${roomNo}`).textContent = 'CI: -';
+            document.getElementById(`current-guest-co-${roomNo}`).textContent = 'CO: -';
+            document.getElementById(`current-guest-pax-${roomNo}`).textContent = '0 khách';
+            
+            // Hide clear button
+            const clearBtn = document.getElementById(`clear-guest-${roomNo}`);
+            if (clearBtn) {
+                clearBtn.style.display = 'none';
+            }
+            
+            // Mark that current guest should be cleared when saving
+            if (!window.roomsToClearGuests) {
+                window.roomsToClearGuests = new Set();
+            }
+            window.roomsToClearGuests.add(roomNo);
+        }
+        
+        // Clear new guest info
+        function clearNewGuestInfo(roomNo) {
+            document.getElementById(`new-name-${roomNo}`).value = '';
+            document.getElementById(`new-checkin-${roomNo}`).value = '';
+            document.getElementById(`new-checkout-${roomNo}`).value = '';
+            document.getElementById(`new-pax-${roomNo}`).value = '';
         }
         
         // Parse room status into FO and HK components
@@ -602,6 +691,7 @@
                     const foSelect = document.getElementById(`fo-${roomId}`);
                     if (foSelect) {
                         foSelect.value = bulkFoStatus;
+                        handleFoStatusChange(roomId, bulkFoStatus);
                     }
                 }
                 
@@ -617,6 +707,11 @@
                     if (arrCheckbox) {
                         arrCheckbox.checked = bulkArr;
                         toggleArrFields(roomId, bulkArr);
+                        
+                        // If turning off ARR, clear new guest info
+                        if (!bulkArr) {
+                            clearNewGuestInfo(roomId);
+                        }
                     }
                 }
                 
@@ -679,6 +774,7 @@
                 if (errorCount === 0) {
                     showToast(`Đã lưu thành công ${successCount} phòng`, 'success');
                     modifiedRooms.clear();
+                    window.roomsToClearGuests = new Set(); // Clear the set
                     loadRooms(); // Reload data
                 } else {
                     showToast(`Lưu ${successCount} phòng thành công, ${errorCount} phòng thất bại`, 'warning');
@@ -722,6 +818,9 @@
                 }
             }
             
+            // Check if we need to clear current guest
+            const shouldClearCurrentGuest = window.roomsToClearGuests && window.roomsToClearGuests.has(roomNo);
+            
             // Collect new guest info if ARR is checked
             let newGuest = null;
             if (hasArr) {
@@ -733,12 +832,27 @@
                 };
             }
             
+            // Prepare updated data
+            const updatedData = {
+                roomStatus: roomStatus
+            };
+            
+            // Add currentGuest as null if it should be cleared
+            if (shouldClearCurrentGuest) {
+                updatedData.currentGuest = null;
+            }
+            
+            // Add newGuest if ARR is checked
+            if (hasArr) {
+                updatedData.newGuest = newGuest;
+            } else {
+                // If ARR is not checked, ensure newGuest is cleared
+                updatedData.newGuest = null;
+            }
+            
             return {
                 roomNo: roomNo,
-                updatedData: {
-                    roomStatus: roomStatus,
-                    newGuest: newGuest
-                }
+                updatedData: updatedData
             };
         }
         
@@ -799,11 +913,17 @@
                 <strong>Hướng dẫn sử dụng:</strong><br><br>
                 1. <strong>Chọn nhiều phòng:</strong> Tick chọn các phòng cần chỉnh sửa<br>
                 2. <strong>Điều chỉnh hàng loạt:</strong> Dùng công cụ ở trên để áp dụng cùng lúc cho các phòng được chọn<br>
-                3. <strong>Tình trạng FO:</strong> Vacant (Trống), Occupied (Có khách), Lock (Khóa)<br>
+                3. <strong>Tình trạng FO:</strong> 
+                   - Vacant (Trống): Tự động xóa thông tin khách hiện tại
+                   - Occupied (Có khách)
+                   - Lock (Khóa)<br>
                 4. <strong>Tình trạng HK:</strong> Dirty (Bẩn), Clean (Sạch), Inspected (Đã kiểm), DND (Không làm phiền), NN (Không dọn)<br>
                 5. <strong>ARR:</strong> Đánh dấu nếu phòng có khách đến mới, nhập thông tin khách mới<br>
                 6. <strong>Lưu thay đổi:</strong> Nhấn "Lưu tất cả thay đổi" để ghi nhận<br><br>
-                <em>Lưu ý: Các ô màu vàng là đã có thay đổi chưa lưu</em>
+                <em>Lưu ý: 
+                - Khi chuyển phòng sang trạng thái Vacant, thông tin khách hiện tại sẽ tự động bị xóa
+                - Các ô màu vàng là đã có thay đổi chưa lưu
+                - Có thể xóa thông tin khách hiện tại bằng nút X đỏ ở góc phải</em>
             `;
             
             alert(helpMessage.replace(/<br>/g, '\n').replace(/<[^>]*>/g, ''));
