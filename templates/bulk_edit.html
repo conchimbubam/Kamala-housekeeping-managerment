@@ -93,16 +93,6 @@
             font-size: 0.875rem;
         }
         
-        .badge-fo {
-            background-color: #0d6efd;
-            color: white;
-        }
-        
-        .badge-hk {
-            background-color: #198754;
-            color: white;
-        }
-        
         .btn-apply-bulk {
             background: linear-gradient(135deg, #0d6efd, #0b5ed7);
             color: white;
@@ -156,21 +146,21 @@
             cursor: not-allowed;
         }
         
-        .current-guest-cell {
-            position: relative;
+        .guest-empty {
+            color: #6c757d;
+            font-style: italic;
         }
         
-        .clear-guest-btn {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            padding: 2px 6px;
-            font-size: 0.75rem;
-            display: none;
+        .vacant-room {
+            background-color: rgba(13, 110, 253, 0.05) !important;
         }
         
-        .current-guest-cell:hover .clear-guest-btn {
-            display: inline-block;
+        .occupied-room {
+            background-color: rgba(253, 193, 7, 0.05) !important;
+        }
+        
+        .locked-room {
+            background-color: rgba(220, 53, 69, 0.05) !important;
         }
     </style>
 </head>
@@ -208,7 +198,7 @@
         <div class="row g-3">
             <div class="col-md-3">
                 <label class="form-label">Tình trạng FO</label>
-                <select class="form-select form-select-sm bulk-fo-status">
+                <select class="form-select form-select-sm bulk-fo-status" id="bulkFoStatus">
                     <option value="">-- Chọn tình trạng FO --</option>
                     <option value="vd">Vacant (Trống)</option>
                     <option value="od">Occupied (Có khách)</option>
@@ -218,7 +208,7 @@
             
             <div class="col-md-3">
                 <label class="form-label">Tình trạng HK</label>
-                <select class="form-select form-select-sm bulk-hk-status">
+                <select class="form-select form-select-sm bulk-hk-status" id="bulkHkStatus">
                     <option value="">-- Chọn tình trạng HK --</option>
                     <option value="dirty">Dirty (Bẩn)</option>
                     <option value="clean">Clean (Sạch)</option>
@@ -325,7 +315,6 @@
         // Global variables
         let allRooms = [];
         let modifiedRooms = new Set();
-        let originalRoomData = {}; // Store original room data for reference
         
         // DOM Content Loaded
         document.addEventListener('DOMContentLoaded', function() {
@@ -343,7 +332,7 @@
             });
             
             // Bulk ARR checkbox
-            document.querySelector('.bulk-arr-check').addEventListener('change', function() {
+            document.getElementById('bulkArrCheck').addEventListener('change', function() {
                 const isChecked = this.checked;
                 const selectedRooms = getSelectedRooms();
                 
@@ -357,7 +346,7 @@
             });
             
             // Bulk FO status change
-            document.querySelector('.bulk-fo-status').addEventListener('change', function() {
+            document.getElementById('bulkFoStatus').addEventListener('change', function() {
                 const selectedRooms = getSelectedRooms();
                 const value = this.value;
                 
@@ -371,7 +360,7 @@
             });
             
             // Bulk HK status change
-            document.querySelector('.bulk-hk-status').addEventListener('change', function() {
+            document.getElementById('bulkHkStatus').addEventListener('change', function() {
                 const selectedRooms = getSelectedRooms();
                 const value = this.value;
                 
@@ -395,10 +384,6 @@
                 
                 if (data.success) {
                     allRooms = data.data;
-                    // Store original room data
-                    allRooms.forEach(room => {
-                        originalRoomData[room.roomNo] = { ...room };
-                    });
                     displayRoomsTable(allRooms);
                     hideLoading();
                 } else {
@@ -406,7 +391,7 @@
                 }
             } catch (error) {
                 console.error('Error loading rooms:', error);
-                showError('Không thể tải dữ liệu phòng: ' + error.message);
+                showToast('Không thể tải dữ liệu phòng: ' + error.message, 'danger');
                 hideLoading();
             }
         }
@@ -421,11 +406,11 @@
                 tbody.innerHTML += row;
             });
             
-            // Add event listeners
+            // Add event listeners to all rows
             rooms.forEach(room => {
                 const roomNo = room.roomNo;
                 
-                // ARR checkbox event
+                // ARR checkbox
                 const arrCheckbox = document.getElementById(`arr-${roomNo}`);
                 if (arrCheckbox) {
                     arrCheckbox.addEventListener('change', function() {
@@ -433,13 +418,13 @@
                     });
                 }
                 
-                // Room checkbox event
+                // Room checkbox
                 const roomCheckbox = document.getElementById(`room-${roomNo}`);
                 if (roomCheckbox) {
                     roomCheckbox.addEventListener('change', updateSelectedCount);
                 }
                 
-                // FO status change event
+                // FO status select
                 const foSelect = document.getElementById(`fo-${roomNo}`);
                 if (foSelect) {
                     foSelect.addEventListener('change', function() {
@@ -447,28 +432,22 @@
                     });
                 }
                 
-                // HK status change event
+                // HK status select
                 const hkSelect = document.getElementById(`hk-${roomNo}`);
                 if (hkSelect) {
-                    hkSelect.addEventListener('change', () => markRoomModified(roomNo));
+                    hkSelect.addEventListener('change', function() {
+                        markRoomModified(roomNo);
+                    });
                 }
                 
-                // Guest info input events
+                // New guest inputs
                 ['new-name', 'new-checkin', 'new-checkout', 'new-pax'].forEach(field => {
                     const input = document.getElementById(`${field}-${roomNo}`);
                     if (input) {
                         input.addEventListener('change', () => markRoomModified(roomNo));
+                        input.addEventListener('input', () => markRoomModified(roomNo));
                     }
                 });
-                
-                // Clear guest button event
-                const clearBtn = document.getElementById(`clear-guest-${roomNo}`);
-                if (clearBtn) {
-                    clearBtn.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        clearCurrentGuest(roomNo);
-                    });
-                }
             });
             
             updateSelectedCount();
@@ -479,7 +458,7 @@
             const roomNo = room.roomNo;
             const currentStatus = room.roomStatus;
             
-            // Parse current guest info
+            // Current guest info
             const currentGuest = room.currentGuest || {};
             const newGuest = room.newGuest || {};
             
@@ -487,13 +466,13 @@
             const { foStatus, hkStatus } = parseRoomStatus(currentStatus);
             
             // Check if has ARR (arrival)
-            const hasArr = currentStatus.includes('/arr') || newGuest.name;
+            const hasArr = currentStatus.includes('/arr') || (newGuest && newGuest.name && newGuest.name.trim() !== '');
             
-            // Check if room has current guest
-            const hasCurrentGuest = currentGuest.name && currentGuest.name.trim() !== '';
+            // Determine if room is currently vacant
+            const isCurrentlyVacant = foStatus === 'vd';
             
             return `
-                <tr id="row-${roomNo}">
+                <tr id="row-${roomNo}" class="${getRoomRowClass(foStatus)}">
                     <td class="checkbox-cell">
                         <input type="checkbox" class="form-check-input room-checkbox" id="room-${roomNo}">
                     </td>
@@ -501,14 +480,14 @@
                         <span class="badge bg-dark">${roomNo}</span>
                     </td>
                     <td class="status-cell">
-                        <select class="form-select form-select-sm fo-status-select" id="fo-${roomNo}">
+                        <select class="form-select form-select-sm fo-status" id="fo-${roomNo}">
                             <option value="vd" ${foStatus === 'vd' ? 'selected' : ''}>Vacant</option>
                             <option value="od" ${foStatus === 'od' ? 'selected' : ''}>Occupied</option>
                             <option value="lock" ${foStatus === 'lock' ? 'selected' : ''}>Lock</option>
                         </select>
                     </td>
                     <td class="status-cell">
-                        <select class="form-select form-select-sm" id="hk-${roomNo}">
+                        <select class="form-select form-select-sm hk-status" id="hk-${roomNo}">
                             <option value="">-- Chọn --</option>
                             <option value="dirty" ${hkStatus === 'dirty' ? 'selected' : ''}>Dirty</option>
                             <option value="clean" ${hkStatus === 'clean' ? 'selected' : ''}>Clean</option>
@@ -517,18 +496,15 @@
                             <option value="nn" ${hkStatus === 'nn' ? 'selected' : ''}>NN</option>
                         </select>
                     </td>
-                    <td class="guest-cell current-guest-cell">
-                        <div class="small">
-                            <div><strong id="current-guest-name-${roomNo}">${currentGuest.name || 'Trống'}</strong></div>
-                            <div id="current-guest-ci-${roomNo}">CI: ${currentGuest.checkIn || '-'}</div>
-                            <div id="current-guest-co-${roomNo}">CO: ${currentGuest.checkOut || '-'}</div>
-                            <div id="current-guest-pax-${roomNo}">${currentGuest.pax || '0'} khách</div>
-                        </div>
-                        ${hasCurrentGuest ? `<button class="btn btn-danger btn-sm clear-guest-btn" id="clear-guest-${roomNo}"><i class="fas fa-times"></i></button>` : ''}
+                    <td class="guest-cell" id="current-guest-${roomNo}">
+                        ${isCurrentlyVacant ? 
+                            '<div class="guest-empty">Trống</div>' : 
+                            createGuestInfoHTML(currentGuest, 'hiện tại')}
                     </td>
                     <td class="arr-cell">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="arr-${roomNo}" ${hasArr ? 'checked' : ''}>
+                            <input class="form-check-input arr-checkbox" type="checkbox" 
+                                   id="arr-${roomNo}" ${hasArr ? 'checked' : ''}>
                             <label class="form-check-label" for="arr-${roomNo}">
                                 <span class="badge bg-warning text-dark">ARR</span>
                             </label>
@@ -537,26 +513,26 @@
                     <td class="guest-cell">
                         <div class="row g-1">
                             <div class="col-12">
-                                <input type="text" class="form-control form-control-sm" 
+                                <input type="text" class="form-control form-control-sm new-guest-input" 
                                        id="new-name-${roomNo}" 
                                        placeholder="Tên khách mới"
                                        value="${newGuest.name || ''}"
                                        ${hasArr ? '' : 'disabled'}>
                             </div>
                             <div class="col-6">
-                                <input type="date" class="form-control form-control-sm" 
+                                <input type="date" class="form-control form-control-sm new-guest-input" 
                                        id="new-checkin-${roomNo}" 
                                        value="${newGuest.checkIn || ''}"
                                        ${hasArr ? '' : 'disabled'}>
                             </div>
                             <div class="col-6">
-                                <input type="date" class="form-control form-control-sm" 
+                                <input type="date" class="form-control form-control-sm new-guest-input" 
                                        id="new-checkout-${roomNo}" 
                                        value="${newGuest.checkOut || ''}"
                                        ${hasArr ? '' : 'disabled'}>
                             </div>
                             <div class="col-12">
-                                <input type="number" class="form-control form-control-sm" 
+                                <input type="number" class="form-control form-control-sm new-guest-input" 
                                        id="new-pax-${roomNo}" 
                                        placeholder="Số khách"
                                        min="1" max="10"
@@ -569,51 +545,30 @@
             `;
         }
         
-        // Handle FO status change
-        function handleFoStatusChange(roomNo, foStatus) {
-            if (foStatus === 'vd') {
-                // When changing to Vacant, clear current guest info
-                clearCurrentGuest(roomNo);
-                
-                // Also disable ARR and clear new guest info
-                const arrCheckbox = document.getElementById(`arr-${roomNo}`);
-                if (arrCheckbox && arrCheckbox.checked) {
-                    arrCheckbox.checked = false;
-                    toggleArrFields(roomNo, false);
-                    clearNewGuestInfo(roomNo);
-                }
+        // Create guest info HTML
+        function createGuestInfoHTML(guest, type) {
+            if (!guest || !guest.name || guest.name.trim() === '') {
+                return `<div class="guest-empty">Trống</div>`;
             }
             
-            markRoomModified(roomNo);
+            return `
+                <div class="small">
+                    <div><strong>${guest.name}</strong></div>
+                    <div>CI: ${guest.checkIn || '-'}</div>
+                    <div>CO: ${guest.checkOut || '-'}</div>
+                    <div>${guest.pax || '0'} khách</div>
+                </div>
+            `;
         }
         
-        // Clear current guest info
-        function clearCurrentGuest(roomNo) {
-            // Update display
-            document.getElementById(`current-guest-name-${roomNo}`).textContent = 'Trống';
-            document.getElementById(`current-guest-ci-${roomNo}`).textContent = 'CI: -';
-            document.getElementById(`current-guest-co-${roomNo}`).textContent = 'CO: -';
-            document.getElementById(`current-guest-pax-${roomNo}`).textContent = '0 khách';
-            
-            // Hide clear button
-            const clearBtn = document.getElementById(`clear-guest-${roomNo}`);
-            if (clearBtn) {
-                clearBtn.style.display = 'none';
+        // Get room row CSS class based on FO status
+        function getRoomRowClass(foStatus) {
+            switch(foStatus) {
+                case 'vd': return 'vacant-room';
+                case 'od': return 'occupied-room';
+                case 'lock': return 'locked-room';
+                default: return '';
             }
-            
-            // Mark that current guest should be cleared when saving
-            if (!window.roomsToClearGuests) {
-                window.roomsToClearGuests = new Set();
-            }
-            window.roomsToClearGuests.add(roomNo);
-        }
-        
-        // Clear new guest info
-        function clearNewGuestInfo(roomNo) {
-            document.getElementById(`new-name-${roomNo}`).value = '';
-            document.getElementById(`new-checkin-${roomNo}`).value = '';
-            document.getElementById(`new-checkout-${roomNo}`).value = '';
-            document.getElementById(`new-pax-${roomNo}`).value = '';
         }
         
         // Parse room status into FO and HK components
@@ -650,6 +605,31 @@
             return { foStatus, hkStatus };
         }
         
+        // Handle FO status change
+        function handleFoStatusChange(roomNo, newFoStatus) {
+            const row = document.getElementById(`row-${roomNo}`);
+            
+            // Update row class
+            row.className = getRoomRowClass(newFoStatus);
+            
+            // If changing to Vacant, clear current guest info
+            if (newFoStatus === 'vd') {
+                document.getElementById(`current-guest-${roomNo}`).innerHTML = 
+                    '<div class="guest-empty">Trống</div>';
+                
+                // Also clear any existing current guest data
+                clearCurrentGuestData(roomNo);
+            }
+            
+            markRoomModified(roomNo);
+        }
+        
+        // Clear current guest data (for Vacant rooms)
+        function clearCurrentGuestData(roomNo) {
+            // This function prepares the data structure to clear current guest
+            // The actual clearing happens in collectRoomData()
+        }
+        
         // Toggle ARR fields
         function toggleArrFields(roomNo, enabled) {
             const fields = [
@@ -663,10 +643,11 @@
                 const field = document.getElementById(fieldId);
                 if (field) {
                     field.disabled = !enabled;
-                    if (enabled) {
-                        field.classList.remove('disabled-field');
-                    } else {
+                    if (!enabled) {
+                        field.value = '';
                         field.classList.add('disabled-field');
+                    } else {
+                        field.classList.remove('disabled-field');
                     }
                 }
             });
@@ -682,9 +663,9 @@
                 return;
             }
             
-            const bulkFoStatus = document.querySelector('.bulk-fo-status').value;
-            const bulkHkStatus = document.querySelector('.bulk-hk-status').value;
-            const bulkArr = document.querySelector('.bulk-arr-check').checked;
+            const bulkFoStatus = document.getElementById('bulkFoStatus').value;
+            const bulkHkStatus = document.getElementById('bulkHkStatus').value;
+            const bulkArr = document.getElementById('bulkArrCheck').checked;
             
             selectedRooms.forEach(roomId => {
                 if (bulkFoStatus) {
@@ -707,11 +688,6 @@
                     if (arrCheckbox) {
                         arrCheckbox.checked = bulkArr;
                         toggleArrFields(roomId, bulkArr);
-                        
-                        // If turning off ARR, clear new guest info
-                        if (!bulkArr) {
-                            clearNewGuestInfo(roomId);
-                        }
                     }
                 }
                 
@@ -719,6 +695,11 @@
             });
             
             showToast(`Đã áp dụng thay đổi cho ${selectedRooms.length} phòng`, 'success');
+            
+            // Reset bulk controls
+            document.getElementById('bulkFoStatus').value = '';
+            document.getElementById('bulkHkStatus').value = '';
+            document.getElementById('bulkArrCheck').checked = false;
         }
         
         // Save all changes
@@ -741,17 +722,17 @@
                 });
                 
                 // Send updates to server
-                const promises = updates.map(update => 
-                    fetch('/api/rooms/update', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(update)
-                    })
+                const results = await Promise.allSettled(
+                    updates.map(update => 
+                        fetch('/api/rooms/update', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(update)
+                        })
+                    )
                 );
-                
-                const results = await Promise.allSettled(promises);
                 
                 let successCount = 0;
                 let errorCount = 0;
@@ -774,7 +755,6 @@
                 if (errorCount === 0) {
                     showToast(`Đã lưu thành công ${successCount} phòng`, 'success');
                     modifiedRooms.clear();
-                    window.roomsToClearGuests = new Set(); // Clear the set
                     loadRooms(); // Reload data
                 } else {
                     showToast(`Lưu ${successCount} phòng thành công, ${errorCount} phòng thất bại`, 'warning');
@@ -818,8 +798,10 @@
                 }
             }
             
-            // Check if we need to clear current guest
-            const shouldClearCurrentGuest = window.roomsToClearGuests && window.roomsToClearGuests.has(roomNo);
+            // If roomStatus is empty, don't send update
+            if (!roomStatus) {
+                return null;
+            }
             
             // Collect new guest info if ARR is checked
             let newGuest = null;
@@ -830,24 +812,29 @@
                     checkOut: document.getElementById(`new-checkout-${roomNo}`).value || '',
                     pax: document.getElementById(`new-pax-${roomNo}`).value || '1'
                 };
+                
+                // If all new guest fields are empty, set newGuest to null
+                if (!newGuest.name && !newGuest.checkIn && !newGuest.checkOut && !newGuest.pax) {
+                    newGuest = null;
+                }
             }
             
-            // Prepare updated data
+            // Prepare update data
             const updatedData = {
                 roomStatus: roomStatus
             };
             
-            // Add currentGuest as null if it should be cleared
-            if (shouldClearCurrentGuest) {
-                updatedData.currentGuest = null;
-            }
-            
-            // Add newGuest if ARR is checked
-            if (hasArr) {
+            // Add newGuest if exists
+            if (newGuest) {
                 updatedData.newGuest = newGuest;
             } else {
-                // If ARR is not checked, ensure newGuest is cleared
+                // If ARR is unchecked but there might be existing newGuest, clear it
                 updatedData.newGuest = null;
+            }
+            
+            // If changing to Vacant, clear current guest
+            if (foStatus === 'vd') {
+                updatedData.currentGuest = {};
             }
             
             return {
@@ -874,9 +861,21 @@
         // Update selected count
         function updateSelectedCount() {
             const count = getSelectedRooms().length;
-            document.getElementById('selectedCount').textContent = `${count} phòng được chọn`;
-            document.getElementById('selectedCount').className = 
-                count > 0 ? 'badge bg-primary me-3' : 'badge bg-secondary me-3';
+            const selectedCountElement = document.getElementById('selectedCount');
+            selectedCountElement.textContent = `${count} phòng được chọn`;
+            
+            // Update badge color based on count
+            if (count > 0) {
+                selectedCountElement.className = 'badge bg-primary me-3';
+            } else {
+                selectedCountElement.className = 'badge bg-secondary me-3';
+            }
+            
+            // Update select all checkbox
+            const totalCheckboxes = document.querySelectorAll('.room-checkbox').length;
+            const checkedCheckboxes = document.querySelectorAll('.room-checkbox:checked').length;
+            document.getElementById('selectAllRooms').checked = 
+                totalCheckboxes > 0 && checkedCheckboxes === totalCheckboxes;
         }
         
         // Show toast message
@@ -885,7 +884,16 @@
             const toastMessage = document.getElementById('toastMessage');
             
             toastMessage.textContent = message;
-            toastElement.className = `toast align-items-center text-white bg-${type} border-0`;
+            
+            // Update toast color based on type
+            const typeClass = {
+                'success': 'bg-success',
+                'warning': 'bg-warning',
+                'danger': 'bg-danger',
+                'info': 'bg-info'
+            }[type] || 'bg-success';
+            
+            toastElement.className = `toast align-items-center text-white ${typeClass} border-0`;
             
             const toast = new bootstrap.Toast(toastElement);
             toast.show();
@@ -902,31 +910,59 @@
             document.getElementById('loadingOverlay').style.display = 'none';
         }
         
-        // Show error
-        function showError(message) {
-            showToast(message, 'danger');
-        }
-        
         // Show help
         function showHelp() {
             const helpMessage = `
-                <strong>Hướng dẫn sử dụng:</strong><br><br>
+                <strong>Hướng dẫn sử dụng chỉnh sửa hàng loạt:</strong><br><br>
                 1. <strong>Chọn nhiều phòng:</strong> Tick chọn các phòng cần chỉnh sửa<br>
                 2. <strong>Điều chỉnh hàng loạt:</strong> Dùng công cụ ở trên để áp dụng cùng lúc cho các phòng được chọn<br>
-                3. <strong>Tình trạng FO:</strong> 
-                   - Vacant (Trống): Tự động xóa thông tin khách hiện tại
-                   - Occupied (Có khách)
-                   - Lock (Khóa)<br>
-                4. <strong>Tình trạng HK:</strong> Dirty (Bẩn), Clean (Sạch), Inspected (Đã kiểm), DND (Không làm phiền), NN (Không dọn)<br>
-                5. <strong>ARR:</strong> Đánh dấu nếu phòng có khách đến mới, nhập thông tin khách mới<br>
+                3. <strong>Tình trạng FO:</strong><br>
+                   • Vacant (Trống): Khi chọn, thông tin khách hiện tại sẽ bị xóa<br>
+                   • Occupied (Có khách): Giữ nguyên hoặc thêm thông tin khách<br>
+                   • Lock (Khóa): Khóa phòng, không cho dọn<br>
+                4. <strong>Tình trạng HK:</strong><br>
+                   • Dirty (Bẩn): Phòng cần dọn<br>
+                   • Clean (Sạch): Phòng đã dọn xong<br>
+                   • Inspected (Đã kiểm): Supervisor đã kiểm tra<br>
+                   • DND (Không làm phiền): Khách không muốn bị làm phiền<br>
+                   • NN (Không dọn): Khách không muốn dọn phòng<br>
+                5. <strong>ARR (Có khách đến):</strong><br>
+                   • Khi bật: Nhập thông tin khách mới sẽ đến<br>
+                   • Khi tắt: Xóa thông tin khách mới<br>
                 6. <strong>Lưu thay đổi:</strong> Nhấn "Lưu tất cả thay đổi" để ghi nhận<br><br>
-                <em>Lưu ý: 
-                - Khi chuyển phòng sang trạng thái Vacant, thông tin khách hiện tại sẽ tự động bị xóa
-                - Các ô màu vàng là đã có thay đổi chưa lưu
-                - Có thể xóa thông tin khách hiện tại bằng nút X đỏ ở góc phải</em>
+                <em>Lưu ý: Các ô màu vàng là đã có thay đổi chưa lưu</em>
             `;
             
-            alert(helpMessage.replace(/<br>/g, '\n').replace(/<[^>]*>/g, ''));
+            // Create a modal for help
+            const helpModal = `
+                <div class="modal fade" id="helpModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title"><i class="fas fa-question-circle me-2"></i>Hướng dẫn sử dụng</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                ${helpMessage}
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Đã hiểu</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add modal to body if not exists
+            if (!document.getElementById('helpModal')) {
+                const modalDiv = document.createElement('div');
+                modalDiv.innerHTML = helpModal;
+                document.body.appendChild(modalDiv);
+            }
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('helpModal'));
+            modal.show();
         }
     </script>
 </body>
