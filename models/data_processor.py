@@ -38,14 +38,20 @@ class DataProcessor:
                         current_guest = room.get('currentGuest', {})
                         new_guest = room.get('newGuest', {})
                         
-                        # Xử lý ngày tháng - chuyển đổi thành NULL nếu không hợp lệ
+                        # Xử lý ngày tháng cho current guest
                         check_in = self.parse_date_for_postgresql(current_guest.get('checkIn', ''))
                         check_out = self.parse_date_for_postgresql(current_guest.get('checkOut', ''))
                         
+                        # Xử lý ngày tháng cho new guest
+                        new_check_in = self.parse_date_for_postgresql(new_guest.get('checkIn', ''))
+                        new_check_out = self.parse_date_for_postgresql(new_guest.get('checkOut', ''))
+                        
                         cur.execute('''
                             INSERT INTO rooms 
-                            (room_no, room_type, room_status, guest_name, check_in, check_out, notes)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s)
+                            (room_no, room_type, room_status, 
+                             guest_name, check_in, check_out, current_guest_pax,
+                             new_guest_name, new_check_in, new_check_out, new_guest_pax)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         ''', (
                             room.get('roomNo', ''),
                             room.get('roomType', ''),
@@ -53,7 +59,11 @@ class DataProcessor:
                             current_guest.get('name', ''),
                             check_in,
                             check_out,
-                            f"Pax: {current_guest.get('pax', 0)}" if current_guest.get('pax', 0) else ''
+                            current_guest.get('pax', 0),
+                            new_guest.get('name', ''),
+                            new_check_in,
+                            new_check_out,
+                            new_guest.get('pax', 0)
                         ))
                     
                     # Ghi log sync
@@ -246,24 +256,26 @@ class DataProcessor:
                 if not room_no:
                     continue
                 
-                room_status = self.clean_room_status(row[1])
+                room_type = str(row[1]).strip() if len(row) > 1 and row[1] else ''
+                room_status = self.clean_room_status(row[2]) if len(row) > 2 and row[2] else 'vc'
                 
                 current_guest = {
-                    'name': self.clean_guest_name(row[2]),
-                    'checkIn': self.parse_date(row[3]),
-                    'checkOut': self.parse_date(row[4]),
-                    'pax': self.parse_pax(row[5])
+                    'name': self.clean_guest_name(row[3]) if len(row) > 3 and row[3] else '',
+                    'checkIn': self.parse_date(row[4]) if len(row) > 4 and row[4] else '',
+                    'checkOut': self.parse_date(row[5]) if len(row) > 5 and row[5] else '',
+                    'pax': self.parse_pax(row[6]) if len(row) > 6 and row[6] else 0
                 }
                 
                 new_guest = {
-                    'name': self.clean_guest_name(row[6]),
-                    'checkIn': self.parse_date(row[7]),
-                    'checkOut': self.parse_date(row[8]),
-                    'pax': self.parse_pax(row[9])
+                    'name': self.clean_guest_name(row[7]) if len(row) > 7 and row[7] else '',
+                    'checkIn': self.parse_date(row[8]) if len(row) > 8 and row[8] else '',
+                    'checkOut': self.parse_date(row[9]) if len(row) > 9 and row[9] else '',
+                    'pax': self.parse_pax(row[10]) if len(row) > 10 and row[10] else 0
                 }
                 
                 room_data = {
                     'roomNo': room_no,
+                    'roomType': room_type,
                     'roomStatus': room_status,
                     'currentGuest': current_guest,
                     'newGuest': new_guest
@@ -278,13 +290,15 @@ class DataProcessor:
         return rooms_data
 
     def get_all_rooms(self):
-        """Lấy tất cả phòng từ database"""
+        """Lấy tất cả phòng từ database với đầy đủ thông tin khách mới"""
         try:
             with self.db.get_connection() as conn:
                 with conn.cursor() as cur:
                     cur.execute('''
-                        SELECT room_no, room_type, room_status, guest_name, 
-                               check_in, check_out, notes, last_updated
+                        SELECT room_no, room_type, room_status, 
+                               guest_name, check_in, check_out, current_guest_pax,
+                               new_guest_name, new_check_in, new_check_out, new_guest_pax,
+                               last_updated
                         FROM rooms 
                         ORDER BY room_no
                     ''')
@@ -296,34 +310,21 @@ class DataProcessor:
                     for row in rows:
                         row_dict = dict(zip(columns, row))
                         
-                        notes = row_dict.get('notes', '') or ''
-                        pax = 0
-                        if 'Pax:' in notes:
-                            try:
-                                pax_str = notes.split('Pax:')[1].strip().split()[0]
-                                pax = int(pax_str)
-                            except:
-                                pax = 0
-                        
-                        # Xử lý ngày tháng từ PostgreSQL
-                        check_in = row_dict.get('check_in')
-                        check_out = row_dict.get('check_out')
-                        
                         rooms.append({
                             'roomNo': row_dict.get('room_no', ''),
                             'roomType': row_dict.get('room_type', ''),
                             'roomStatus': row_dict.get('room_status', 'vc'),
                             'currentGuest': {
                                 'name': row_dict.get('guest_name', '') or '',
-                                'checkIn': self.format_date_for_display(check_in),
-                                'checkOut': self.format_date_for_display(check_out),
-                                'pax': pax
+                                'checkIn': self.format_date_for_display(row_dict.get('check_in')),
+                                'checkOut': self.format_date_for_display(row_dict.get('check_out')),
+                                'pax': row_dict.get('current_guest_pax', 0) or 0
                             },
                             'newGuest': {
-                                'name': '',
-                                'checkIn': '',
-                                'checkOut': '',
-                                'pax': 0
+                                'name': row_dict.get('new_guest_name', '') or '',
+                                'checkIn': self.format_date_for_display(row_dict.get('new_check_in')),
+                                'checkOut': self.format_date_for_display(row_dict.get('new_check_out')),
+                                'pax': row_dict.get('new_guest_pax', 0) or 0
                             }
                         })
                     
@@ -334,32 +335,42 @@ class DataProcessor:
             return {'success': False, 'error': str(e)}
 
     def format_date_for_display(self, date_value):
-        """Định dạng ngày tháng cho hiển thị"""
+        """Định dạng ngày tháng cho hiển thị (dd-mm-yy)"""
         if not date_value:
             return ''
         
         try:
-            # Nếu là string, trả về trực tiếp
-            if isinstance(date_value, str):
-                return date_value
+            # Nếu là string và đã ở định dạng PostgreSQL DATE (YYYY-MM-DD)
+            if isinstance(date_value, str) and re.match(r'\d{4}-\d{2}-\d{2}', date_value):
+                date_obj = datetime.strptime(date_value, '%Y-%m-%d')
+                return date_obj.strftime('%d-%m-%y')
             
-            # Nếu là datetime object, format lại
+            # Nếu là datetime object
             if isinstance(date_value, datetime):
                 return date_value.strftime('%d-%m-%y')
             
+            # Nếu đã ở định dạng dd-mm-yy
+            if isinstance(date_value, str) and re.match(r'\d{2}-\d{2}-\d{2}', date_value):
+                return date_value
+            
             return str(date_value)
-        except:
+        except Exception as e:
+            logger.warning(f"Lỗi định dạng ngày tháng: {date_value}, Error: {e}")
             return ''
 
     def get_room_by_number(self, room_no):
-        """Lấy thông tin chi tiết một phòng"""
+        """Lấy thông tin chi tiết một phòng với đầy đủ thông tin khách mới"""
         try:
             with self.db.get_connection() as conn:
                 with conn.cursor() as cur:
-                    cur.execute(
-                        'SELECT * FROM rooms WHERE room_no = %s', 
-                        (room_no,)
-                    )
+                    cur.execute('''
+                        SELECT room_no, room_type, room_status, 
+                               guest_name, check_in, check_out, current_guest_pax,
+                               new_guest_name, new_check_in, new_check_out, new_guest_pax,
+                               last_updated
+                        FROM rooms 
+                        WHERE room_no = %s
+                    ''', (room_no,))
                     
                     columns = [desc[0] for desc in cur.description]
                     row = cur.fetchone()
@@ -367,34 +378,23 @@ class DataProcessor:
                     if row:
                         row_dict = dict(zip(columns, row))
                         
-                        notes = row_dict.get('notes', '') or ''
-                        pax = 0
-                        if 'Pax:' in notes:
-                            try:
-                                pax_str = notes.split('Pax:')[1].strip().split()[0]
-                                pax = int(pax_str)
-                            except:
-                                pax = 0
-                        
-                        check_in = row_dict.get('check_in')
-                        check_out = row_dict.get('check_out')
-                        
                         return {
                             'roomNo': row_dict.get('room_no', ''),
                             'roomType': row_dict.get('room_type', ''),
                             'roomStatus': row_dict.get('room_status', 'vc'),
                             'currentGuest': {
                                 'name': row_dict.get('guest_name', '') or '',
-                                'checkIn': self.format_date_for_display(check_in),
-                                'checkOut': self.format_date_for_display(check_out),
-                                'pax': pax
+                                'checkIn': self.format_date_for_display(row_dict.get('check_in')),
+                                'checkOut': self.format_date_for_display(row_dict.get('check_out')),
+                                'pax': row_dict.get('current_guest_pax', 0) or 0
                             },
                             'newGuest': {
-                                'name': '',
-                                'checkIn': '',
-                                'checkOut': '',
-                                'pax': 0
-                            }
+                                'name': row_dict.get('new_guest_name', '') or '',
+                                'checkIn': self.format_date_for_display(row_dict.get('new_check_in')),
+                                'checkOut': self.format_date_for_display(row_dict.get('new_check_out')),
+                                'pax': row_dict.get('new_guest_pax', 0) or 0
+                            },
+                            'lastUpdated': row_dict.get('last_updated')
                         }
                     return None
                     
@@ -403,22 +403,10 @@ class DataProcessor:
             return None
 
     def update_room_data(self, room_no, updated_data, user_info):
-        """Cập nhật thông tin phòng trong database"""
+        """Cập nhật thông tin phòng trong database với đầy đủ thông tin khách mới"""
         try:
             with self.db.get_connection() as conn:
                 with conn.cursor() as cur:
-                    # Lấy thông tin phòng hiện tại
-                    cur.execute(
-                        'SELECT * FROM rooms WHERE room_no = %s', 
-                        (room_no,)
-                    )
-                    
-                    columns = [desc[0] for desc in cur.description]
-                    current_row = cur.fetchone()
-                    
-                    if not current_row:
-                        return False
-                    
                     # Build dynamic update query
                     set_clause = []
                     params = []
@@ -427,12 +415,15 @@ class DataProcessor:
                         set_clause.append('room_status = %s')
                         params.append(updated_data['roomStatus'])
                     
+                    if 'roomType' in updated_data:
+                        set_clause.append('room_type = %s')
+                        params.append(updated_data['roomType'])
+                    
                     if 'currentGuest' in updated_data:
                         guest_data = updated_data['currentGuest']
                         set_clause.append('guest_name = %s')
                         params.append(guest_data.get('name', ''))
                         
-                        # Xử lý ngày tháng cho PostgreSQL
                         check_in = self.parse_date_for_postgresql(guest_data.get('checkIn', ''))
                         check_out = self.parse_date_for_postgresql(guest_data.get('checkOut', ''))
                         
@@ -442,14 +433,25 @@ class DataProcessor:
                         set_clause.append('check_out = %s')
                         params.append(check_out)
                         
-                        pax = guest_data.get('pax', 0)
-                        notes = f"Pax: {pax}" if pax else ''
-                        set_clause.append('notes = %s')
-                        params.append(notes)
+                        set_clause.append('current_guest_pax = %s')
+                        params.append(guest_data.get('pax', 0))
                     
-                    if 'roomType' in updated_data:
-                        set_clause.append('room_type = %s')
-                        params.append(updated_data['roomType'])
+                    if 'newGuest' in updated_data:
+                        new_guest_data = updated_data['newGuest']
+                        set_clause.append('new_guest_name = %s')
+                        params.append(new_guest_data.get('name', ''))
+                        
+                        new_check_in = self.parse_date_for_postgresql(new_guest_data.get('checkIn', ''))
+                        new_check_out = self.parse_date_for_postgresql(new_guest_data.get('checkOut', ''))
+                        
+                        set_clause.append('new_check_in = %s')
+                        params.append(new_check_in)
+                        
+                        set_clause.append('new_check_out = %s')
+                        params.append(new_check_out)
+                        
+                        set_clause.append('new_guest_pax = %s')
+                        params.append(new_guest_data.get('pax', 0))
                     
                     if not set_clause:
                         return False
@@ -493,11 +495,17 @@ class DataProcessor:
             return {}
 
     def get_rooms_by_floor(self):
-        """Nhóm phòng theo tầng"""
+        """Nhóm phòng theo tầng với đầy đủ thông tin khách mới"""
         try:
             with self.db.get_connection() as conn:
                 with conn.cursor() as cur:
-                    cur.execute('SELECT * FROM rooms ORDER BY room_no')
+                    cur.execute('''
+                        SELECT room_no, room_type, room_status, 
+                               guest_name, check_in, check_out, current_guest_pax,
+                               new_guest_name, new_check_in, new_check_out, new_guest_pax
+                        FROM rooms 
+                        ORDER BY room_no
+                    ''')
                     
                     columns = [desc[0] for desc in cur.description]
                     rows = cur.fetchall()
@@ -506,22 +514,10 @@ class DataProcessor:
                     for row in rows:
                         row_dict = dict(zip(columns, row))
                         
-                        notes = row_dict.get('notes', '') or ''
-                        pax = 0
-                        if 'Pax:' in notes:
-                            try:
-                                pax_str = notes.split('Pax:')[1].strip().split()[0]
-                                pax = int(pax_str)
-                            except:
-                                pax = 0
-                        
                         floor = row_dict.get('room_no', '0')[0] if row_dict.get('room_no') else '0'
                         
                         if floor not in floors:
                             floors[floor] = []
-                        
-                        check_in = row_dict.get('check_in')
-                        check_out = row_dict.get('check_out')
                         
                         floors[floor].append({
                             'roomNo': row_dict.get('room_no', ''),
@@ -529,15 +525,15 @@ class DataProcessor:
                             'roomStatus': row_dict.get('room_status', 'vc'),
                             'currentGuest': {
                                 'name': row_dict.get('guest_name', '') or '',
-                                'checkIn': self.format_date_for_display(check_in),
-                                'checkOut': self.format_date_for_display(check_out),
-                                'pax': pax
+                                'checkIn': self.format_date_for_display(row_dict.get('check_in')),
+                                'checkOut': self.format_date_for_display(row_dict.get('check_out')),
+                                'pax': row_dict.get('current_guest_pax', 0) or 0
                             },
                             'newGuest': {
-                                'name': '',
-                                'checkIn': '',
-                                'checkOut': '',
-                                'pax': 0
+                                'name': row_dict.get('new_guest_name', '') or '',
+                                'checkIn': self.format_date_for_display(row_dict.get('new_check_in')),
+                                'checkOut': self.format_date_for_display(row_dict.get('new_check_out')),
+                                'pax': row_dict.get('new_guest_pax', 0) or 0
                             }
                         })
                     
