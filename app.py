@@ -7,23 +7,20 @@ import logging
 from datetime import datetime, timedelta
 from functools import wraps
 import os
-import shutil
 import threading
-import time
-from pathlib import Path
 
 # Cấu hình logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def create_app():
-    """Factory function để tạo Flask app với SQLite"""
+    """Factory function để tạo Flask app với PostgreSQL"""
     app = Flask(__name__)
     app.config.from_object(Config)
     app.config['SECRET_KEY'] = Config.SECRET_KEY
     
-    # Khởi tạo database manager
-    db_manager = DatabaseManager(Config.DATABASE_PATH)
+    # Khởi tạo database manager với PostgreSQL
+    db_manager = DatabaseManager()
     
     # Khởi tạo data processor với database
     data_processor = DataProcessor(
@@ -40,74 +37,6 @@ def create_app():
     app.db_manager = db_manager
     app.data_processor = data_processor
     app.hk_logger = hk_logger
-
-    # ==================== BACKUP SYSTEM (EVENT-BASED) ====================
-
-    def create_backup():
-        """Tạo bản sao lưu database - CHỈ GIỮ 5 BẢN GẦN NHẤT"""
-        try:
-            backup_dir = Path("backups")
-            backup_dir.mkdir(exist_ok=True)
-            
-            # Tạo tên file backup với timestamp
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_file = backup_dir / f"hotel_backup_{timestamp}.db"
-            
-            # Sao chép file database
-            shutil.copy2(Config.DATABASE_PATH, backup_file)
-            
-            # CHỈ GIỮ LẠI 5 BACKUP GẦN NHẤT (thay vì 24)
-            cleanup_old_backups(backup_dir, keep_count=5)
-            
-            logger.info(f"✅ Đã tạo backup: {backup_file}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"❌ Lỗi tạo backup: {e}")
-            return False
-
-    def cleanup_old_backups(backup_dir, keep_count=5):
-        """Xóa các bản backup cũ, chỉ giữ lại `keep_count` bản mới nhất"""
-        try:
-            backup_files = list(backup_dir.glob("hotel_backup_*.db"))
-            if len(backup_files) > keep_count:
-                # Sắp xếp theo thời gian tạo (cũ nhất đầu tiên)
-                backup_files.sort(key=os.path.getctime)
-                # Xóa các file cũ vượt quá số lượng giữ lại
-                for old_file in backup_files[:-keep_count]:
-                    os.remove(old_file)
-                    logger.info(f"🗑️ Đã xóa backup cũ: {old_file}")
-        except Exception as e:
-            logger.error(f"Lỗi khi dọn dẹp backup cũ: {e}")
-
-    def restore_latest_backup():
-        """Tìm và khôi phục backup gần nhất khi app khởi động"""
-        try:
-            backup_dir = Path("backups")
-            if not backup_dir.exists():
-                logger.info("📂 Thư mục backup không tồn tại")
-                return False
-            
-            backup_files = list(backup_dir.glob("hotel_backup_*.db"))
-            if not backup_files:
-                logger.info("📭 Không tìm thấy file backup nào")
-                return False
-            
-            # Sắp xếp theo thời gian tạo (mới nhất đầu tiên)
-            backup_files.sort(key=os.path.getctime, reverse=True)
-            latest_backup = backup_files[0]
-            
-            # Sao chép backup vào database chính
-            shutil.copy2(latest_backup, Config.DATABASE_PATH)
-            
-            backup_time = datetime.fromtimestamp(latest_backup.stat().st_ctime)
-            logger.info(f"✅ Đã khôi phục từ backup: {latest_backup.name} (tạo lúc {backup_time})")
-            
-            return True
-            
-        except Exception as e:
-            logger.error(f"❌ Lỗi khôi phục backup: {e}")
-            return False
 
     # ==================== DECORATORS PHÂN QUYỀN ====================
 
@@ -218,113 +147,13 @@ def create_app():
         except Exception as e:
             logger.error(f"Lỗi khi tạo tasksheet: {e}")
             return render_template('error.html', error="Lỗi khi tạo tasksheet"), 500
-
-    # ==================== API BACKUP MANAGEMENT ====================
-
-    @app.route('/api/backup/create', methods=['POST'])
+    @app.route('/bulk-edit')
     @login_required
     @fo_required
-    def manual_backup():
-        """API tạo backup thủ công (chỉ FO)"""
-        try:
-            success = create_backup()
-            if success:
-                return jsonify({
-                    'success': True,
-                    'message': 'Đã tạo bản sao lưu thành công',
-                    'timestamp': datetime.now().isoformat()
-                })
-            else:
-                return jsonify({
-                    'success': False,
-                    'error': 'Không thể tạo bản sao lưu'
-                }), 500
-        except Exception as e:
-            logger.error(f"Lỗi tạo backup thủ công: {e}")
-            return jsonify({
-                'success': False,
-                'error': f'Lỗi tạo backup: {str(e)}'
-            }), 500
-
-    @app.route('/api/backup/list')
-    @login_required
-    @fo_required
-    def list_backups():
-        """API liệt kê các bản backup có sẵn"""
-        try:
-            backup_dir = Path("backups")
-            backup_files = []
-            
-            if backup_dir.exists():
-                for file_path in backup_dir.glob("hotel_backup_*.db"):
-                    stat = file_path.stat()
-                    backup_files.append({
-                        'filename': file_path.name,
-                        'size': round(stat.st_size / 1024 / 1024, 2),  # MB
-                        'created': datetime.fromtimestamp(stat.st_ctime).strftime('%H:%M %d/%m/%Y'),
-                        'filepath': str(file_path)
-                    })
-                
-                # Sắp xếp mới nhất đầu tiên
-                backup_files.sort(key=lambda x: x['created'], reverse=True)
-            
-            return jsonify({
-                'success': True,
-                'data': backup_files,
-                'total': len(backup_files),
-                'timestamp': datetime.now().isoformat()
-            })
-        except Exception as e:
-            logger.error(f"Lỗi liệt kê backup: {e}")
-            return jsonify({
-                'success': False,
-                'error': f'Lỗi liệt kê backup: {str(e)}'
-            }), 500
-
-    @app.route('/api/backup/restore', methods=['POST'])
-    @login_required
-    @fo_required
-    def restore_backup():
-        """API khôi phục từ bản backup (chỉ FO)"""
-        try:
-            data = request.get_json()
-            filename = data.get('filename')
-            
-            if not filename:
-                return jsonify({
-                    'success': False,
-                    'error': 'Thiếu tên file backup'
-                }), 400
-            
-            backup_path = Path("backups") / filename
-            
-            if not backup_path.exists():
-                return jsonify({
-                    'success': False,
-                    'error': 'File backup không tồn tại'
-                }), 404
-            
-            # Tạo backup hiện tại trước khi restore
-            create_backup()
-            
-            # Sao chép file backup vào vị trí database chính
-            shutil.copy2(backup_path, Config.DATABASE_PATH)
-            
-            logger.info(f"✅ Đã khôi phục từ backup: {filename}")
-            
-            return jsonify({
-                'success': True,
-                'message': f'Đã khôi phục thành công từ {filename}',
-                'timestamp': datetime.now().isoformat()
-            })
-            
-        except Exception as e:
-            logger.error(f"Lỗi khôi phục backup: {e}")
-            return jsonify({
-                'success': False,
-                'error': f'Lỗi khôi phục: {str(e)}'
-            }), 500
-
+    def bulk_edit():
+        """Trang chỉnh sửa hàng loạt dành cho FO"""
+        user_info = session.get('user_info', {})
+        return render_template('bulk_edit.html', user=user_info)
     # ==================== API ENDPOINTS ====================
 
     @app.route('/api/user-info')
@@ -474,12 +303,9 @@ def create_app():
     @login_required
     @fo_required
     def refresh_data():
-        """API endpoint để refresh dữ liệu từ Google Sheets (chỉ FO) - CÓ BACKUP"""
+        """API endpoint để refresh dữ liệu từ Google Sheets (chỉ FO)"""
         try:
             user_info = f"{session.get('user_info', {}).get('name', 'Unknown')} ({session.get('user_info', {}).get('department', 'Unknown')})"
-            
-            # ✅ TẠO BACKUP TRƯỚC KHI REFRESH (vì sẽ thay đổi nhiều dữ liệu)
-            threading.Thread(target=create_backup, daemon=True).start()
             
             # Sử dụng phương thức mới để khởi tạo từ Google Sheets
             success = app.data_processor.initialize_rooms_from_google_sheets(user_info)
@@ -512,7 +338,7 @@ def create_app():
     @app.route('/api/rooms/update', methods=['POST'])
     @login_required
     def update_room():
-        """API endpoint để cập nhật thông tin một phòng - CÓ BACKUP"""
+        """API endpoint để cập nhật thông tin một phòng"""
         try:
             data = request.get_json()
             room_no = data.get('roomNo')
@@ -581,9 +407,6 @@ def create_app():
                     'error': 'Không thể cập nhật phòng'
                 }), 500
             
-            # ✅ TẠO BACKUP SAU KHI CẬP NHẬT THÀNH CÔNG
-            threading.Thread(target=create_backup, daemon=True).start()
-            
             # GHI LOG THAY ĐỔI TRẠNG THÁI PHÒNG
             if old_status and new_status and old_status != new_status:
                 app.hk_logger.log_room_status_change(
@@ -638,7 +461,7 @@ def create_app():
     @login_required
     @hk_required
     def hk_quick_update():
-        """API cho HK cập nhật nhanh trạng thái phòng - CÓ BACKUP"""
+        """API cho HK cập nhật nhanh trạng thái phòng"""
         try:
             data = request.get_json()
             room_no = data.get('roomNo')
@@ -701,9 +524,6 @@ def create_app():
                     'success': False,
                     'error': 'Không thể cập nhật phòng'
                 }), 500
-            
-            # ✅ TẠO BACKUP SAU KHI CẬP NHẬT THÀNH CÔNG
-            threading.Thread(target=create_backup, daemon=True).start()
             
             # GHI LOG THAY ĐỔI TRẠNG THÁI PHÒNG
             app.hk_logger.log_room_status_change(
@@ -787,17 +607,9 @@ def create_app():
     # ==================== KHỞI TẠO DỮ LIỆU ====================
 
     def initialize_data():
-        """Khởi tạo dữ liệu - Ưu tiên khôi phục từ backup trước"""
+        """Khởi tạo dữ liệu nếu database trống"""
         try:
             if app.db_manager.is_database_empty():
-                # THỬ KHÔI PHỤC TỪ BACKUP TRƯỚC
-                backup_restored = restore_latest_backup()
-                
-                if backup_restored:
-                    logger.info("✅ Đã khôi phục dữ liệu từ backup gần nhất")
-                    return
-                
-                # Nếu không có backup, mới lấy từ Google Sheets
                 logger.info("🔄 Khởi tạo dữ liệu lần đầu từ Google Sheets...")
                 success = app.data_processor.initialize_rooms_from_google_sheets('system_initialization')
                 if success:
@@ -810,31 +622,30 @@ def create_app():
             logger.error(f"❌ Lỗi khởi tạo dữ liệu: {e}")
 
     with app.app_context():
-        initialize_data()
+        # Khởi tạo database tables nếu chưa tồn tại
+        app.db_manager.initialize_database()
         
-        # 🗑️ XÓA DÒNG NÀY: start_backup_service()
-        # Vì giờ backup sẽ chạy theo event, không cần scheduler
-        # start_backup_service()
+        # Khởi tạo dữ liệu
+        initialize_data()
 
     return app
-    app = create_app()
+
+app = create_app()
+
 if __name__ == '__main__':
-    app = create_app()
-    
-    print("🚀 Dashboard Quản Lý Khách Sạn - EVENT-BASED BACKUP EDITION")
+    print("🚀 Dashboard Quản Lý Khách Sạn - POSTGRESQL EDITION")
     print("=" * 50)
     print("🔐 Đăng nhập: http://localhost:5000/login")
     print("🏨 Dashboard: http://localhost:5000/")
-    print("🗃️  Database: data/hotel.db")
-    print("💾 Backup: Tự động sao lưu KHI CÓ CẬP NHẬT")
+    print("🗃️  Database: PostgreSQL (Render)")
     print("🎯 TÍNH NĂNG MỚI:")
-    print("   • Event-Based Backup - Sao lưu khi có thay đổi")
-    print("   • Chỉ giữ 5 bản backup gần nhất")
-    print("   • Tự động khôi phục từ backup khi khởi động")
-    print("📊 BACKUP API:")
-    print("   • List: GET http://localhost:5000/api/backup/list")
-    print("   • Create: POST http://localhost:5000/api/backup/create")
-    print("   • Restore: POST http://localhost:5000/api/backup/restore")
+    print("   • PostgreSQL Database - Dữ liệu persistent")
+    print("   • Không mất dữ liệu khi restart")
+    print("   • Auto backup bởi Render")
+    print("📊 CÁC API CHÍNH:")
+    print("   • Rooms: GET http://localhost:5000/api/rooms")
+    print("   • Refresh: POST http://localhost:5000/api/refresh")
+    print("   • HK Report: GET http://localhost:5000/api/report/hk")
     print("=" * 50)
     
     app.run(
