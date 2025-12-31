@@ -87,25 +87,15 @@ class DatabaseManager:
             try:
                 with self.get_connection() as conn:
                     with conn.cursor() as cur:
-                        # Bảng rooms - thay thế rooms.json với đầy đủ thông tin khách mới
+                        # Bảng rooms - thay thế rooms.json
                         cur.execute('''
                             CREATE TABLE IF NOT EXISTS rooms (
                                 room_no VARCHAR(10) PRIMARY KEY,
                                 room_type VARCHAR(50) NOT NULL,
                                 room_status VARCHAR(20) NOT NULL DEFAULT 'vc',
-                                
-                                -- Thông tin khách hiện tại (current guest)
                                 guest_name TEXT DEFAULT '',
                                 check_in VARCHAR(20) DEFAULT '',
                                 check_out VARCHAR(20) DEFAULT '',
-                                current_guest_pax INTEGER DEFAULT 0,
-                                
-                                -- Thông tin khách mới (new guest)
-                                new_guest_name TEXT DEFAULT '',
-                                new_check_in VARCHAR(20) DEFAULT '',
-                                new_check_out VARCHAR(20) DEFAULT '',
-                                new_guest_pax INTEGER DEFAULT 0,
-                                
                                 notes TEXT DEFAULT '',
                                 last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
