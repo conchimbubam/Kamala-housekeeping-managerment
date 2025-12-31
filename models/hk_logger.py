@@ -12,14 +12,16 @@ class HKLogger:
     def log_room_status_change(self, room_no, old_status, new_status, user_name, user_department="HK"):
         """Ghi log thay đổi trạng thái phòng"""
         try:
+            # Chỉ log các chuyển đổi quan trọng (giữ nguyên logic cũ)
             important_transitions = [
-                ('vd', 'vc'), ('vd/arr', 'vc/arr'),
-                ('od', 'oc'), ('od', 'dnd'), ('od', 'nn')
+                ('vd', 'vc'), ('vd/arr', 'vc/arr'),  # Dọn phòng trống
+                ('od', 'oc'), ('od', 'dnd'), ('od', 'nn')  # Dọn phòng ở
             ]
             
             if (old_status, new_status) not in important_transitions:
                 return
             
+            # Xác định loại thao tác (giữ nguyên logic cũ)
             if (old_status, new_status) in [('vd', 'vc'), ('vd/arr', 'vc/arr')]:
                 action_type = "dọn phòng trống"
                 action_detail = f"{old_status.upper()} → {new_status.upper()}"
@@ -28,20 +30,19 @@ class HKLogger:
                 action_detail = f"{old_status.upper()} → {new_status.upper()}"
             
             with self.db.get_connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute('''
-                        INSERT INTO activity_logs 
-                        (user_name, user_department, room_no, action_type, old_status, new_status, action_detail)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    ''', (
-                        user_name,
-                        user_department,
-                        room_no,
-                        action_type,
-                        old_status,
-                        new_status,
-                        action_detail
-                    ))
+                conn.execute('''
+                    INSERT INTO activity_logs 
+                    (user_name, user_department, room_no, action_type, old_status, new_status, action_detail)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    user_name,
+                    user_department,
+                    room_no,
+                    action_type,
+                    old_status,
+                    new_status,
+                    action_detail
+                ))
                 conn.commit()
             
             logger.info(f"✅ Đã ghi log HK: {room_no} - {action_type} bởi {user_name}")
@@ -52,24 +53,24 @@ class HKLogger:
     def log_note_change(self, room_no, old_note, new_note, user_name, user_department="HK"):
         """Ghi log thay đổi ghi chú"""
         try:
+            # Chỉ log nếu có thay đổi thực sự (giữ nguyên logic cũ)
             if old_note == new_note:
                 return
             
             action_detail = f'Ghi chú: "{old_note or "Trống"}" → "{new_note or "Trống"}"'
             
             with self.db.get_connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute('''
-                        INSERT INTO activity_logs 
-                        (user_name, user_department, room_no, action_type, action_detail)
-                        VALUES (%s, %s, %s, %s, %s)
-                    ''', (
-                        user_name,
-                        user_department,
-                        room_no,
-                        'cập nhật ghi chú',
-                        action_detail
-                    ))
+                conn.execute('''
+                    INSERT INTO activity_logs 
+                    (user_name, user_department, room_no, action_type, action_detail)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (
+                    user_name,
+                    user_department,
+                    room_no,
+                    'cập nhật ghi chú',
+                    action_detail
+                ))
                 conn.commit()
             
             logger.info(f"✅ Đã ghi log ghi chú: {room_no} bởi {user_name}")
@@ -78,21 +79,20 @@ class HKLogger:
             logger.error(f"❌ Lỗi ghi log ghi chú: {e}")
     
     def log_room_cleaning(self, room_no, user_name, user_department="HK", notes=""):
-        """Ghi log dọn phòng"""
+        """Ghi log dọn phòng (bổ sung thêm)"""
         try:
             with self.db.get_connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute('''
-                        INSERT INTO activity_logs 
-                        (user_name, user_department, room_no, action_type, action_detail)
-                        VALUES (%s, %s, %s, %s, %s)
-                    ''', (
-                        user_name,
-                        user_department,
-                        room_no,
-                        'dọn phòng',
-                        notes or 'Đã hoàn thành dọn phòng'
-                    ))
+                conn.execute('''
+                    INSERT INTO activity_logs 
+                    (user_name, user_department, room_no, action_type, action_detail)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (
+                    user_name,
+                    user_department,
+                    room_no,
+                    'dọn phòng',
+                    notes or 'Đã hoàn thành dọn phòng'
+                ))
                 conn.commit()
                 
             logger.info(f"✅ Đã ghi log dọn phòng: {room_no} bởi {user_name}")
@@ -111,37 +111,37 @@ class HKLogger:
                 microsecond=0
             )
             
+            # Nếu bây giờ là trước 8h15, thì lấy từ 8h15 ngày hôm trước
             if now < start_time:
                 start_time = start_time - timedelta(days=1)
             
             with self.db.get_connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute('''
-                        SELECT * FROM activity_logs 
-                        WHERE timestamp >= %s
-                        ORDER BY timestamp DESC
-                    ''', (start_time,))
+                rows = conn.execute('''
+                    SELECT * FROM activity_logs 
+                    WHERE timestamp >= ?
+                    ORDER BY timestamp DESC
+                ''', (start_time,)).fetchall()
+                
+                # Convert để tương thích với format cũ
+                report_data = []
+                for row in rows:
+                    log_entry = dict(row)
                     
-                    columns = [desc[0] for desc in cur.description]
-                    rows = cur.fetchall()
-                    
-                    report_data = []
-                    for row in rows:
-                        log_entry = dict(zip(columns, row))
-                        
-                        report_data.append({
-                            'timestamp': log_entry.get('timestamp'),
-                            'user_name': log_entry.get('user_name', ''),
-                            'room_no': log_entry.get('room_no', ''),
-                            'action_type': log_entry.get('action_type', ''),
-                            'action_detail': log_entry.get('action_detail', ''),
-                            'old_status': log_entry.get('old_status', ''),
-                            'new_status': log_entry.get('new_status', ''),
-                            'activity_type': 'room_status' if log_entry.get('old_status') else 'note_change'
-                        })
-                    
-                    return report_data
-                    
+                    # Map các trường để tương thích với frontend
+                    report_data.append({
+                        'timestamp': log_entry['timestamp'],
+                        'user_name': log_entry['user_name'],
+                        'room_no': log_entry['room_no'],
+                        'action_type': log_entry['action_type'],
+                        'action_detail': log_entry['action_detail'],
+                        'old_status': log_entry.get('old_status', ''),
+                        'new_status': log_entry.get('new_status', ''),
+                        # Thêm các trường để tương thích
+                        'activity_type': 'room_status' if log_entry.get('old_status') else 'note_change'
+                    })
+                
+                return report_data
+                
         except Exception as e:
             logger.error(f"❌ Lỗi get_today_report: {e}")
             return []
@@ -164,6 +164,7 @@ class HKLogger:
         }
         
         for log in report_data:
+            # Thống kê theo nhân viên
             staff_name = log['user_name']
             if staff_name not in stats['staff_stats']:
                 stats['staff_stats'][staff_name] = {
@@ -176,10 +177,12 @@ class HKLogger:
             
             stats['staff_stats'][staff_name]['total'] += 1
             
+            # Thống kê theo loại hoạt động
             activity_type = log.get('activity_type', '')
             if activity_type in stats['activity_types']:
                 stats['activity_types'][activity_type] += 1
             
+            # Thống kê theo loại thao tác
             action_type = log.get('action_type', '')
             if action_type in stats['action_types']:
                 stats['action_types'][action_type] += 1
@@ -192,38 +195,32 @@ class HKLogger:
         """Lấy lịch sử ghi chú (có thể lọc theo phòng)"""
         try:
             with self.db.get_connection() as conn:
-                with conn.cursor() as cur:
-                    if room_no:
-                        cur.execute('''
-                            SELECT * FROM activity_logs 
-                            WHERE action_type = 'cập nhật ghi chú' AND room_no = %s
-                            ORDER BY timestamp DESC
-                        ''', (room_no,))
-                    else:
-                        cur.execute('''
-                            SELECT * FROM activity_logs 
-                            WHERE action_type = 'cập nhật ghi chú'
-                            ORDER BY timestamp DESC
-                        ''')
-                    
-                    columns = [desc[0] for desc in cur.description]
-                    rows = cur.fetchall()
-                    
-                    notes_history = []
-                    for row in rows:
-                        row_dict = dict(zip(columns, row))
-                        
-                        notes_history.append({
-                            'timestamp': row_dict.get('timestamp'),
-                            'user_name': row_dict.get('user_name', ''),
-                            'room_no': row_dict.get('room_no', ''),
-                            'action_detail': row_dict.get('action_detail', ''),
-                            'old_note': '',
-                            'new_note': ''
-                        })
-                    
-                    return notes_history
-                    
+                if room_no:
+                    rows = conn.execute('''
+                        SELECT * FROM activity_logs 
+                        WHERE action_type = 'cập nhật ghi chú' AND room_no = ?
+                        ORDER BY timestamp DESC
+                    ''', (room_no,)).fetchall()
+                else:
+                    rows = conn.execute('''
+                        SELECT * FROM activity_logs 
+                        WHERE action_type = 'cập nhật ghi chú'
+                        ORDER BY timestamp DESC
+                    ''').fetchall()
+                
+                notes_history = []
+                for row in rows:
+                    notes_history.append({
+                        'timestamp': row['timestamp'],
+                        'user_name': row['user_name'],
+                        'room_no': row['room_no'],
+                        'action_detail': row['action_detail'],
+                        'old_note': '',  # Có thể parse từ action_detail nếu cần
+                        'new_note': ''   # Có thể parse từ action_detail nếu cần
+                    })
+                
+                return notes_history
+                
         except Exception as e:
             logger.error(f"❌ Lỗi get_notes_history: {e}")
             return []
@@ -232,12 +229,11 @@ class HKLogger:
         """Xóa toàn bộ logs (chỉ FO)"""
         try:
             with self.db.get_connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute('DELETE FROM activity_logs')
-                    conn.commit()
-                    logger.info("✅ Đã xóa toàn bộ logs HK")
-                    return True
-                    
+                conn.execute('DELETE FROM activity_logs')
+                conn.commit()
+                logger.info("✅ Đã xóa toàn bộ logs HK")
+                return True
+                
         except Exception as e:
             logger.error(f"❌ Lỗi clear_all_logs: {e}")
             return False
@@ -248,18 +244,14 @@ class HKLogger:
             start_date = datetime.now() - timedelta(days=days)
             
             with self.db.get_connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute('''
-                        SELECT * FROM activity_logs 
-                        WHERE user_name = %s AND timestamp >= %s
-                        ORDER BY timestamp DESC
-                    ''', (user_name, start_date))
-                    
-                    columns = [desc[0] for desc in cur.description]
-                    rows = cur.fetchall()
-                    
-                    return [dict(zip(columns, row)) for row in rows]
-                    
+                rows = conn.execute('''
+                    SELECT * FROM activity_logs 
+                    WHERE user_name = ? AND timestamp >= ?
+                    ORDER BY timestamp DESC
+                ''', (user_name, start_date)).fetchall()
+                
+                return [dict(row) for row in rows]
+                
         except Exception as e:
             logger.error(f"❌ Lỗi get_activity_by_user: {e}")
             return []
@@ -268,19 +260,15 @@ class HKLogger:
         """Lấy lịch sử hoạt động của một phòng"""
         try:
             with self.db.get_connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute('''
-                        SELECT * FROM activity_logs 
-                        WHERE room_no = %s
-                        ORDER BY timestamp DESC
-                        LIMIT %s
-                    ''', (room_no, limit))
-                    
-                    columns = [desc[0] for desc in cur.description]
-                    rows = cur.fetchall()
-                    
-                    return [dict(zip(columns, row)) for row in rows]
-                    
+                rows = conn.execute('''
+                    SELECT * FROM activity_logs 
+                    WHERE room_no = ?
+                    ORDER BY timestamp DESC
+                    LIMIT ?
+                ''', (room_no, limit)).fetchall()
+                
+                return [dict(row) for row in rows]
+                
         except Exception as e:
             logger.error(f"❌ Lỗi get_room_activity_history: {e}")
             return []

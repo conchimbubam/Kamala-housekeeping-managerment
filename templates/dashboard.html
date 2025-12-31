@@ -15,68 +15,78 @@
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-dark bg-dark">
+    <nav class="navbar navbar-dark bg-dark py-2">
         <div class="container-fluid">
-            <span class="navbar-brand mb-0 h1">
-                <i class="fas fa-hotel me-2"></i>KAMALA
-            </span>
-            <div class="navbar-text d-flex align-items-center">
-                {% if user %}
-                <div class="me-3 text-light">
-                    <small>Xin chào, <strong>{{ user.name }}</strong> ({{ user.department }})</small>
-                </div>
-                {% endif %}
-                
-                <!-- Menu Tác vụ -->
-                <div class="dropdown">
-                    <button class="btn btn-outline-light dropdown-toggle" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-bars"></i> Tác vụ
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionsDropdown">
-                        <!-- Chỉ FO mới thấy nút Update Data -->
-                        {% if user and user.department == 'FO' %}
-                        <li>
-                            <a class="dropdown-item" href="#" onclick="showUpdateModal()">
-                                <i class="fas fa-sync-alt me-2"></i>Update Data
-                            </a>
-                        </li>
-                        {% endif %}
-                        <!-- Nút Chỉnh sửa hàng loạt MỚI THÊM - Chỉ FO mới thấy -->
-                        {% if user and user.department == 'FO' %}
-                        <li>
-                            <a class="dropdown-item" href="/bulk-edit" target="_blank">
-                                 <i class="fas fa-pencil-alt me-2"></i>Chỉnh sửa hàng loạt
-                            </a>
-                        </li>
-                        {% endif %}
-                        <!-- Nút Báo cáo HK - Hiển thị cho cả FO và HK -->
-                        {% if user and (user.department == 'FO' or user.department == 'HK') %}
-                        <li>
-                            <a class="dropdown-item" href="#" onclick="showHKReportModal()">
-                                <i class="fas fa-chart-bar me-2"></i>Báo cáo HK
-                            </a>
-                        </li>
-                        {% endif %}
+            <div class="d-flex flex-column w-100">
+                <!-- Dòng 1: Brand và Menu Tác vụ -->
+                <div class="d-flex justify-content-between align-items-center w-100">
+                    <span class="navbar-brand mb-0 h1">
+                        <i class="fas fa-hotel me-2"></i>KAMALA HOTEL
+                    </span>
+                    
+                    <!-- Menu Tác vụ -->
+                    <div class="dropdown">
+                        <button class="btn btn-outline-light dropdown-toggle" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-bars"></i> Tác vụ
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionsDropdown">
+                            <!-- Chỉ FO mới thấy nút Update Data -->
+                            {% if user and user.department == 'FO' %}
+                            <li>
+                                <a class="dropdown-item" href="#" onclick="showUpdateModal()">
+                                    <i class="fas fa-sync-alt me-2"></i>Update Data
+                                </a>
+                            </li>
+                            {% endif %}
 
-                        <!-- Chỉ FO mới thấy nút In Tasksheet -->
-                        {% if user and user.department == 'FO' %}
-                        <li>
-                            <a class="dropdown-item" href="#" onclick="printTasksheet()">
-                                <i class="fas fa-print me-2"></i>In Tasksheet
-                            </a>
-                        </li>
-                        {% endif %}
-                        
-                        <li><hr class="dropdown-divider"></li>
-                        <li>
-                            <a class="dropdown-item" href="{{ url_for('logout') }}">
-                                <i class="fas fa-sign-out-alt me-2"></i>Đăng xuất
-                            </a>
-                        </li>
-                    </ul>
+                            <!-- Nút Bulk Update - Chỉ FO mới thấy -->
+                            {% if user and user.department == 'FO' %}
+                            <li>
+                                <a class="dropdown-item" href="#" onclick="showBulkUpdateModal()">
+                                    <i class="fas fa-edit me-2"></i>Cập nhật hàng loạt
+                                </a>
+                            </li>
+                            {% endif %}
+                            
+                            <!-- Nút Báo cáo HK - Hiển thị cho cả FO và HK -->
+                            {% if user and (user.department == 'FO' or user.department == 'HK') %}
+                            <li>
+                                <a class="dropdown-item" href="#" onclick="showHKReportModal()">
+                                    <i class="fas fa-chart-bar me-2"></i>Báo cáo HK
+                                </a>
+                            </li>
+                            {% endif %}
+
+                            <!-- Chỉ FO mới thấy nút In Tasksheet -->
+                            {% if user and user.department == 'FO' %}
+                            <li>
+                                <a class="dropdown-item" href="#" onclick="printTasksheet()">
+                                    <i class="fas fa-print me-2"></i>In Tasksheet
+                                </a>
+                            </li>
+                            {% endif %}
+                            
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('logout') }}">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Đăng xuất
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
 
-                <span class="ms-2 text-light" id="last-updated">Đang tải...</span>
+                <!-- Dòng 2: Thông tin người dùng và thời gian cập nhật -->
+                <div class="d-flex justify-content-between align-items-center w-100 mt-1">
+                    <div class="text-light">
+                        {% if user %}
+                        <small>Xin chào, <strong>{{ user.name }}</strong> ({{ user.department }})</small>
+                        {% endif %}
+                    </div>
+                    <div class="text-light">
+                        <small id="last-updated">Đang tải...</small>
+                    </div>
+                </div>
             </div>
         </div>
     </nav>

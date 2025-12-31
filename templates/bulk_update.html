@@ -1,0 +1,667 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bulk Update Modal — Hotel Database</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    :root{
+      --bg-muted: #f7f9fb;
+      --panel-radius: .6rem;
+      --accent: #0d6efd;
+      --surface: #ffffff;
+      --muted: #6c757d;
+    }
+
+    .modal-xl { max-width: 1100px; }
+    .bulk-body { padding: 1rem; }
+
+    /* Left room panel */
+    .room-panel{ background: var(--surface); border-radius: var(--panel-radius); box-shadow: 0 6px 18px rgba(12,24,40,0.06); padding: 1rem; }
+    .room-list { max-height: 420px; overflow:auto; }
+    .floor-header { display:flex; align-items:center; gap:.6rem; padding:.5rem .6rem; border-radius:.4rem; background:var(--bg-muted); margin-bottom:.45rem; cursor:pointer; }
+    .floor-header .meta { margin-left:auto; font-size:.85rem; color:var(--muted); }
+    .room-chip { display:inline-flex; align-items:center; gap:.5rem; padding:.28rem .5rem; border-radius:.4rem; margin:.18rem; font-size:.88rem; cursor:pointer; border:1px solid transparent; }
+    .room-chip input{ margin-right:.4rem; }
+
+    /* Status color system */
+    .status-chip-vc { background:#f8f9fa; color:#000; border:1px solid #dee2e6; }
+    .status-chip-vd { background:#6c757d; color:#fff; }
+    .status-chip-do { background:#ffc107; color:#000; }
+    .status-chip-od { background:#212529; color:#fff; }
+    .status-chip-oc { background:#fd7e14; color:#fff; }
+    .status-chip-dnd { background:#ffc107; color:#000; }
+    .status-chip-nn { background:#ffc107; color:#000; }
+    .status-chip-ip { background:#198754; color:#fff; }
+    .status-chip-lock { background:#dc3545; color:#fff; }
+
+    /* Right panel */
+    .panel { background:var(--surface); border-radius:var(--panel-radius); padding:1rem; box-shadow: 0 6px 18px rgba(12,24,40,0.04);} 
+    .status-buttons-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:.5rem; }
+    .status-buttons-grid .btn{ white-space:nowrap; }
+    .btn.active { box-shadow: 0 6px 18px rgba(13,110,253,0.12); }
+
+    .changes-card { background:linear-gradient(180deg, #fff, #fbfdff); border-radius:.5rem; padding:.75rem; }
+
+    /* responsive tweaks */
+    @media (max-width: 767px){ .room-panel,.panel{ padding:.75rem } .status-buttons-grid { grid-template-columns: repeat(3,1fr); } }
+  </style>
+</head>
+<body class="bg-light">
+
+<!-- Modal -->
+<div class="modal fade" id="bulkUpdateModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fa fa-wand-magic-sparkles me-2"></i>Cập nhật hàng loạt</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <!-- BODY: Main tabs: Status / Info -->
+      <div class="modal-body bulk-body">
+
+        <ul class="nav nav-pills mb-3" id="mainFeatureTab" role="tablist">
+          <li class="nav-item me-2" role="presentation">
+            <button class="nav-link active" id="feature-status" data-bs-toggle="pill" data-bs-target="#featureStatus" type="button" role="tab"><i class="fa fa-toggle-on me-1"></i> Cập nhật trạng thái</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="feature-info" data-bs-toggle="pill" data-bs-target="#featureInfo" type="button" role="tab"><i class="fa fa-user-pen me-1"></i> Cập nhật thông tin</button>
+          </li>
+        </ul>
+
+        <div class="tab-content">
+
+          <!-- FEATURE: STATUS -->
+          <div class="tab-pane fade show active" id="featureStatus" role="tabpanel">
+            <div class="row g-3">
+              <div class="col-lg-6">
+                <div class="room-panel">
+                  <div class="d-flex align-items-center mb-2">
+                    <h6 class="mb-0">Chọn phòng</h6>
+                    <div class="ms-auto text-end">
+                      <small class="text-muted d-block"><span id="selectedCount">0</span> phòng được chọn</small>
+                    </div>
+                  </div>
+
+                  <div class="mb-2 d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-secondary" id="btn-select-all">Chọn tất cả</button>
+                    <button class="btn btn-sm btn-outline-secondary" id="btn-deselect-all">Bỏ chọn</button>
+                    <input class="form-control form-control-sm ms-auto" id="roomFilter" placeholder="Tìm phòng hoặc tầng" />
+                  </div>
+
+                  <div class="room-list" id="roomList"></div>
+                </div>
+              </div>
+
+              <div class="col-lg-6">
+                <div class="panel">
+                  <h6 class="mb-3">Trạng thái nhanh</h6>
+
+                  <div class="status-buttons-grid mb-3" id="statusButtons">
+                    <!-- buttons added by JS -->
+                  </div>
+
+                  <div class="mb-3 small text-muted">Trạng thái được chọn: <strong id="currentStatusLabel">Không có</strong></div>
+
+                  <div class="changes-card">
+                    <h6 class="mb-2">Tóm tắt</h6>
+                    <div id="summaryStatus">Chưa có thay đổi nào</div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- FEATURE: INFO -->
+          <div class="tab-pane fade" id="featureInfo" role="tabpanel">
+            <div class="row g-3">
+              <div class="col-lg-6">
+                <div class="room-panel">
+                  <div class="d-flex align-items-center mb-2">
+                    <h6 class="mb-0">Chọn phòng</h6>
+                    <div class="ms-auto text-end">
+                      <small class="text-muted d-block"><span id="selectedCount2">0</span> phòng được chọn</small>
+                    </div>
+                  </div>
+
+                  <div class="mb-2 d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-secondary" id="btn-select-all-2">Chọn tất cả</button>
+                    <button class="btn btn-sm btn-outline-secondary" id="btn-deselect-all-2">Bỏ chọn</button>
+                    <input class="form-control form-control-sm ms-auto" id="roomFilter2" placeholder="Tìm phòng hoặc tầng" />
+                  </div>
+
+                  <div class="room-list" id="roomList2"></div>
+                </div>
+              </div>
+
+              <div class="col-lg-6">
+                <div class="panel">
+                  <h6 class="mb-2">Thông tin khách</h6>
+
+                  <ul class="nav nav-tabs" id="guestTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                      <button class="nav-link active" id="tab-current" data-bs-toggle="tab" data-bs-target="#guestCurrent" type="button" role="tab">Khách hiện tại</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                      <button class="nav-link" id="tab-new" data-bs-toggle="tab" data-bs-target="#guestNew" type="button" role="tab">Khách mới</button>
+                    </li>
+                    <li class="nav-item ms-auto">
+                      <button class="btn btn-sm btn-outline-primary" id="btn-arrival"><i class="fa fa-calendar-plus me-1"></i> ARR</button>
+                    </li>
+                  </ul>
+
+                  <div class="tab-content p-3 border mt-2 rounded" id="guestTabContent">
+                    <div class="tab-pane fade show active" id="guestCurrent" role="tabpanel">
+                      <form id="formCurrent">
+                        <div class="mb-2">
+                          <label class="form-label">Tên khách</label>
+                          <input class="form-control form-control-sm" id="currentName" />
+                        </div>
+                        <div class="row g-2">
+                          <div class="col">
+                            <label class="form-label">Check-in</label>
+                            <input type="date" class="form-control form-control-sm" id="currentCheckin" />
+                          </div>
+                          <div class="col">
+                            <label class="form-label">Check-out</label>
+                            <input type="date" class="form-control form-control-sm" id="currentCheckout" />
+                          </div>
+                        </div>
+                        <div class="mt-2">
+                          <label class="form-label">Số khách</label>
+                          <input type="number" min="1" class="form-control form-control-sm" id="currentPax" />
+                        </div>
+                      </form>
+                    </div>
+
+                    <div class="tab-pane fade" id="guestNew" role="tabpanel">
+                      <form id="formNew">
+                        <div class="mb-2">
+                          <label class="form-label">Tên khách</label>
+                          <input class="form-control form-control-sm" id="newName" />
+                        </div>
+                        <div class="row g-2">
+                          <div class="col">
+                            <label class="form-label">Check-in</label>
+                            <input type="date" class="form-control form-control-sm" id="newCheckin" />
+                          </div>
+                          <div class="col">
+                            <label class="form-label">Check-out</label>
+                            <input type="date" class="form-control form-control-sm" id="newCheckout" />
+                          </div>
+                        </div>
+                        <div class="mt-2">
+                          <label class="form-label">Số khách</label>
+                          <input type="number" min="1" class="form-control form-control-sm" id="newPax" />
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+
+                  <div class="mt-3 changes-card">
+                    <h6 class="mb-2">Tóm tắt</h6>
+                    <div id="summaryInfo">Chưa có thay đổi nào</div>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+        <button type="button" class="btn btn-primary" id="btnApply">Áp dụng cập nhật</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // ======== STATE ========
+  const state = {
+    selected: new Set(),
+    roomStatus: null,
+    currentGuest: null,
+    newGuest: null
+  };
+
+  // status labels & classes - MỞ RỘNG cho các trạng thái từ database
+  const STATUS_META = {
+    vc: { label:'VC', class:'status-chip-vc' },
+    vd: { label:'VD', class:'status-chip-vd' },
+    'vd/arr': { label:'VD/ARR', class:'status-chip-vd' },
+    'vc/arr': { label:'VC/ARR', class:'status-chip-vc' },
+    do: { label:'DO', class:'status-chip-do' },
+    'do/arr': { label:'DO/ARR', class:'status-chip-do' },
+    od: { label:'OD', class:'status-chip-od' },
+    oc: { label:'OC', class:'status-chip-oc' },
+    dnd:{ label:'DND', class:'status-chip-dnd' },
+    nn:{ label:'NN', class:'status-chip-nn' },
+    ip:{ label:'IP', class:'status-chip-ip' },
+    lock:{ label:'LOCK', class:'status-chip-lock' }
+  };
+
+  // ======== UTIL ========
+  const $ = (id)=>document.getElementById(id);
+
+  function formatCount(n){ return n + (n===1? ' phòng':' phòng'); }
+
+  // ======== LOAD REAL DATA FROM DATABASE ========
+  let allRooms = [];
+
+  async function loadRoomsFromDatabase() {
+    try {
+      const response = await fetch('/api/rooms');
+      const data = await response.json();
+      
+      if (data.success) {
+        // Transform data từ database sang format phù hợp
+        allRooms = data.data.map(room => {
+          // Parse thông tin khách từ guest_name, check_in, check_out
+          let currentGuest = null;
+          if (room.guest_name && room.guest_name.trim() !== '' && room.guest_name !== '00-01-00') {
+            currentGuest = {
+              name: room.guest_name,
+              checkIn: room.check_in,
+              checkOut: room.check_out,
+              pax: extractPaxFromNotes(room.notes)
+            };
+          }
+
+          return {
+            roomNo: room.room_no,
+            roomStatus: room.room_status,
+            currentGuest: currentGuest,
+            newGuest: null, // Khách mới sẽ được thêm khi cập nhật
+            notes: room.notes
+          };
+        });
+        
+        renderAll();
+        return true;
+      } else {
+        console.error('Failed to load rooms from database');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error loading rooms:', error);
+      return false;
+    }
+  }
+
+  // Helper function để extract số khách từ notes
+  function extractPaxFromNotes(notes) {
+    if (!notes) return 0;
+    const paxMatch = notes.match(/Pax:\s*(\d+)/i);
+    return paxMatch ? parseInt(paxMatch[1]) : 0;
+  }
+
+  // ======== RENDER ROOM LIST ========
+  function groupByFloor(rooms){
+    const map = new Map();
+    rooms.forEach(r=>{
+      // floor = first 2-3 ký tự (ví dụ: 33, 331, 12, v.v.)
+      const floor = r.roomNo.replace(/\d+$/, ''); // Loại bỏ số phòng cuối cùng
+      if(!map.has(floor)) map.set(floor,[]);
+      map.get(floor).push(r);
+    });
+    return [...map.entries()].sort((a,b)=> a[0].localeCompare(b[0], undefined, {numeric: true}));
+  }
+
+  function createRoomList(containerId, filter=''){
+    const container = $(containerId);
+    const filtered = allRooms.filter(r => 
+      r.roomNo.includes(filter) || 
+      r.roomStatus.includes(filter) ||
+      (r.currentGuest && r.currentGuest.name && r.currentGuest.name.toLowerCase().includes(filter.toLowerCase()))
+    );
+    const grouped = groupByFloor(filtered);
+    
+    container.innerHTML = grouped.map(([floor, rooms]) => {
+      const roomsHtml = rooms.map(room => {
+        const meta = STATUS_META[room.roomStatus] || {label:room.roomStatus, class:'status-chip-vc'};
+        const checked = state.selected.has(room.roomNo) ? 'checked' : '';
+        const guestInfo = room.currentGuest ? `<small class="d-block text-muted">${room.currentGuest.name}</small>` : '';
+        
+        return `
+          <label class="room-chip ${meta.class}" data-room="${room.roomNo}" title="${room.currentGuest ? room.currentGuest.name : 'Trống'}">
+            <input type="checkbox" ${checked} data-room="${room.roomNo}"> 
+            ${room.roomNo}
+            ${guestInfo}
+          </label>
+        `;
+      }).join('');
+
+      return `
+        <div class="mb-2">
+          <div class="floor-header" data-floor="${floor}">
+            <div><input type="checkbox" class="floor-select" data-floor="${floor}"></div>
+            <div class="ms-2 fw-bold">Tầng ${floor}</div>
+            <div class="meta">${rooms.length} phòng</div>
+          </div>
+          <div class="ps-2 pt-2">${roomsHtml}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // initial render
+  function renderAll(){
+    if (allRooms.length === 0) {
+      $('roomList').innerHTML = '<div class="text-center text-muted py-3">Đang tải dữ liệu...</div>';
+      $('roomList2').innerHTML = '<div class="text-center text-muted py-3">Đang tải dữ liệu...</div>';
+      return;
+    }
+    
+    createRoomList('roomList');
+    createRoomList('roomList2');
+    updateSelectedUI();
+    renderStatusButtons();
+    updateSummaries();
+  }
+
+  // ======== EVENTS (delegation) ========
+  document.addEventListener('click', function(e){
+    // room-chip click or checkbox
+    const chip = e.target.closest('.room-chip');
+    if(chip){
+      const room = chip.dataset.room;
+      const cb = chip.querySelector('input[type=checkbox]');
+      const newVal = !cb.checked;
+      cb.checked = newVal;
+      toggleRoom(room, newVal);
+    }
+
+    // floor header toggles
+    const fh = e.target.closest('.floor-header');
+    if(fh){
+      const floor = fh.dataset.floor;
+      const section = fh.nextElementSibling;
+      section.classList.toggle('d-none');
+    }
+  });
+
+  // checkbox change (delegation for dynamic lists)
+  document.addEventListener('change', function(e){
+    if(e.target.matches('.room-chip input[type="checkbox"]')){
+      const room = e.target.dataset.room;
+      toggleRoom(room, e.target.checked);
+    }
+    if(e.target.matches('.floor-select')){
+      const floor = e.target.dataset.floor;
+      const container = e.target.closest('.floor-header').nextElementSibling;
+      const checks = container.querySelectorAll('input[type="checkbox"]');
+      checks.forEach(cb => { 
+        cb.checked = e.target.checked; 
+        toggleRoom(cb.dataset.room, e.target.checked); 
+      });
+    }
+  });
+
+  function toggleRoom(roomNo, isSelected){
+    if(isSelected) state.selected.add(roomNo); 
+    else state.selected.delete(roomNo);
+    
+    // sync both lists checkboxes
+    Array.from(document.querySelectorAll(`input[data-room="${roomNo}"]`)).forEach(cb => cb.checked = isSelected);
+    updateSelectedUI();
+    updateSummaries();
+  }
+
+  // select/deselect
+  $('btn-select-all').addEventListener('click', ()=>{ selectAll(); });
+  $('btn-deselect-all').addEventListener('click', ()=>{ deselectAll(); });
+  $('btn-select-all-2').addEventListener('click', ()=>{ selectAll(); });
+  $('btn-deselect-all-2').addEventListener('click', ()=>{ deselectAll(); });
+
+  function selectAll(){ 
+    allRooms.forEach(r=>state.selected.add(r.roomNo)); 
+    syncChecks(true); 
+    updateSelectedUI(); 
+    updateSummaries(); 
+  }
+  
+  function deselectAll(){ 
+    state.selected.clear(); 
+    syncChecks(false); 
+    updateSelectedUI(); 
+    updateSummaries(); 
+  }
+  
+  function syncChecks(val){ 
+    document.querySelectorAll('input[data-room]').forEach(cb => cb.checked = val); 
+    document.querySelectorAll('.floor-select').forEach(f => f.checked = val); 
+  }
+
+  // filter inputs
+  $('roomFilter').addEventListener('input', (e)=>{ createRoomList('roomList', e.target.value.trim()); });
+  $('roomFilter2').addEventListener('input', (e)=>{ createRoomList('roomList2', e.target.value.trim()); });
+
+  // ======== STATUS BUTTONS ========
+  function renderStatusButtons(){
+    const container = $('statusButtons');
+    container.innerHTML = Object.entries(STATUS_META).map(([k,m])=>{
+      return `<button type="button" class="btn btn-sm ${m.class}" data-status="${k}">${m.label}</button>`;
+    }).join('');
+
+    // attach click handlers
+    container.querySelectorAll('button').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        container.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        state.roomStatus = btn.dataset.status;
+        $('currentStatusLabel').textContent = STATUS_META[state.roomStatus].label;
+        updateSummaries();
+      });
+    });
+  }
+
+  // ======== ARRIVAL BUTTON (auto fill) ========
+  $('btn-arrival').addEventListener('click', ()=>{
+    const today = new Date();
+    const tom = new Date(); 
+    tom.setDate(today.getDate()+1);
+    
+    $('currentCheckin').value = today.toISOString().split('T')[0];
+    $('currentCheckout').value = tom.toISOString().split('T')[0];
+
+    // if no status set, choose OD by default
+    if(!state.roomStatus){
+      const btn = document.querySelector('#statusButtons button[data-status="od"]');
+      if(btn) btn.click();
+    }
+
+    // switch to current guest tab
+    const currentGuestTab = new bootstrap.Tab($('tab-current'));
+    currentGuestTab.show();
+  });
+
+  // ======== SUMMARIES ========
+  function updateSelectedUI(){
+    $('selectedCount').textContent = state.selected.size;
+    $('selectedCount2').textContent = state.selected.size;
+  }
+
+  function collectGuestForm(formId){
+    const f = $(formId);
+    const name = f.querySelector('input[type="text"]')?.value || '';
+    const dateInputs = f.querySelectorAll('input[type="date"]');
+    const checkIn = dateInputs[0]?.value || '';
+    const checkOut = dateInputs[1]?.value || '';
+    const pax = f.querySelector('input[type="number"]')?.value || '';
+    
+    if(!name && !checkIn && !checkOut && !pax) return null;
+    
+    return { 
+      name, 
+      checkIn, 
+      checkOut, 
+      pax: pax ? parseInt(pax) : 0 
+    };
+  }
+
+  function updateSummaries(){
+    // STATUS summary
+    const s = [];
+    if(state.selected.size) s.push(`<strong>${state.selected.size}</strong> phòng sẽ được cập nhật`);
+    if(state.roomStatus) s.push(`Trạng thái: <strong>${(STATUS_META[state.roomStatus]||{}).label||state.roomStatus}</strong>`);
+    if(state.currentGuest) s.push('Cập nhật: khách hiện tại');
+    if(state.newGuest) s.push('Cập nhật: khách mới');
+    $('summaryStatus').innerHTML = s.length? s.map(x=>`<div>${x}</div>`).join('') : '<div class="text-muted">Chưa có thay đổi nào</div>';
+
+    // INFO summary
+    const s2 = [];
+    if(state.selected.size) s2.push(`<strong>${state.selected.size}</strong> phòng sẽ được cập nhật`);
+    
+    // Collect guest info based on active tab
+    const activeGuestTab = document.querySelector('#guestTabContent .tab-pane.active');
+    if(activeGuestTab && activeGuestTab.id === 'guestCurrent') {
+      state.currentGuest = collectGuestForm('formCurrent');
+      state.newGuest = null;
+    } else {
+      state.newGuest = collectGuestForm('formNew');
+      state.currentGuest = null;
+    }
+    
+    if(state.currentGuest) s2.push('Cập nhật: <strong>Khách hiện tại</strong>');
+    if(state.newGuest) s2.push('Cập nhật: <strong>Khách mới</strong>');
+    $('summaryInfo').innerHTML = s2.length? s2.map(x=>`<div>${x}</div>`).join('') : '<div class="text-muted">Chưa có thay đổi nào</div>';
+  }
+
+  // debounce for inputs
+  function debounce(fn, wait=150){ let t; return (...a)=>{ clearTimeout(t); t = setTimeout(()=>fn(...a), wait); } }
+  document.querySelectorAll('#formCurrent input, #formNew input').forEach(el=> el.addEventListener('input', debounce(updateSummaries, 200)));
+
+  // APPLY UPDATE - Gửi đến database thực
+  $('btnApply').addEventListener('click', async ()=>{
+    if(state.selected.size === 0){ 
+      alert('Vui lòng chọn ít nhất một phòng'); 
+      return; 
+    }
+
+    // Collect guest form depending on active guest tab
+    const activeGuestTab = document.querySelector('#guestTabContent .tab-pane.active');
+    if(activeGuestTab && activeGuestTab.id === 'guestCurrent') {
+      state.currentGuest = collectGuestForm('formCurrent');
+      state.newGuest = null;
+    } else {
+      state.newGuest = collectGuestForm('formNew');
+      state.currentGuest = null;
+    }
+
+    if(!state.roomStatus && !state.currentGuest && !state.newGuest){ 
+      alert('Vui lòng chọn ít nhất một tuỳ chọn cập nhật'); 
+      return; 
+    }
+
+    if(!confirm(`Bạn có chắc muốn cập nhật ${state.selected.size} phòng?`)) return;
+
+    const payload = {
+      roomNos: Array.from(state.selected),
+      updates: {
+        roomStatus: state.roomStatus,
+        currentGuest: state.currentGuest,
+        newGuest: state.newGuest
+      }
+    };
+
+    try{
+      const res = await fetch('/api/rooms/bulk-update', { 
+        method:'POST', 
+        headers:{'Content-Type':'application/json'}, 
+        body: JSON.stringify(payload)
+      });
+      
+      const result = await res.json();
+      
+      if(result.success){
+        const modal = bootstrap.Modal.getInstance(document.getElementById('bulkUpdateModal'));
+        if(modal) modal.hide();
+        
+        // Show success message
+        showSuccessMessage(`Đã cập nhật thành công ${payload.roomNos.length} phòng`);
+        
+        // Reload main dashboard data
+        if (typeof loadData === 'function') {
+          loadData();
+        }
+      } else {
+        alert('Lỗi khi cập nhật: ' + (result.error || 'Unknown error'));
+      }
+    }catch(err){ 
+      console.error('Bulk update error:', err); 
+      alert('Lỗi kết nối khi cập nhật dữ liệu'); 
+    }
+  });
+
+  // Success message function
+  function showSuccessMessage(message) {
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = 'toast align-items-center text-white bg-success border-0 position-fixed top-0 end-0 m-3';
+    toast.style.zIndex = '1060';
+    toast.innerHTML = `
+      <div class="d-flex">
+        <div class="toast-body">
+          <i class="fas fa-check-circle me-2"></i>${message}
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+      </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Show toast
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+    
+    // Remove toast after hide
+    toast.addEventListener('hidden.bs.toast', () => {
+      document.body.removeChild(toast);
+    });
+  }
+
+  // ======== MODAL MANAGEMENT ========
+  function showBulkUpdateModal(){
+    // Reset state khi mở modal mới
+    state.selected.clear();
+    state.roomStatus = null;
+    state.currentGuest = null;
+    state.newGuest = null;
+    
+    // Load data từ database
+    loadRoomsFromDatabase();
+    
+    // Reset UI
+    document.querySelectorAll('.status-buttons-grid .btn').forEach(btn => btn.classList.remove('active'));
+    $('currentStatusLabel').textContent = 'Không có';
+    $('summaryStatus').innerHTML = '<div class="text-muted">Chưa có thay đổi nào</div>';
+    $('summaryInfo').innerHTML = '<div class="text-muted">Chưa có thay đổi nào</div>';
+    
+    // Reset forms
+    document.getElementById('formCurrent').reset();
+    document.getElementById('formNew').reset();
+    
+    const modal = new bootstrap.Modal(document.getElementById('bulkUpdateModal'));
+    modal.show();
+  }
+
+  // Initialize when modal is shown
+  document.addEventListener('DOMContentLoaded', function() {
+    // Không load data ngay lập tức, chỉ load khi modal được mở
+  });
+
+</script>
+</body>
+</html>
